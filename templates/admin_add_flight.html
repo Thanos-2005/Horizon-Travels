@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Flight - Horizon Travel Admin</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #343a40;
+            color: white;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: #007bff;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Horizon Travel Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">View Site</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-shield"></i> {{ session.get('admin_username', 'Admin') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_profile') }}">Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_flights') }}">
+                                <i class="fas fa-plane"></i> Flights
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_bookings') }}">
+                                <i class="fas fa-ticket-alt"></i> Bookings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_reports') }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        {% if show_list %}
+                            Flight Management
+                        {% else %}
+                            Add New Flight
+                        {% endif %}
+                    </h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        {% if show_list %}
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('admin_flights') }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Flight List
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% if show_list %}
+                    <!-- Flight List Table -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">All Flights</h5>
+                            <a href="{{ url_for('admin_add_flight') }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus"></i> Add New Flight
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            {% if flights and flights|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Flight #</th>
+                                            <th>Airline</th>
+                                            <th>Route</th>
+                                            <th>Departure</th>
+                                            <th>Arrival</th>
+                                            <th>Class</th>
+                                            <th>Price</th>
+                                            <th>Seats</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for flight in flights %}
+                                        <tr>
+                                            <td>{{ flight.journeyid }}</td>
+                                            <td>{{ flight.flight_number }}</td>
+                                            <td>
+                                                {% if flight.id_travelcompany == 1 %}Horizon Airways
+                                                {% else %}Unknown Airline (ID: {{ flight.id_travelcompany }})
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ flight.dep_location }} → {{ flight.arr_location }}</td>
+                                            <td>{{ flight.dep_time.strftime('%d/%m/%Y %H:%M') }}</td>
+                                            <td>{{ flight.arr_time.strftime('%d/%m/%Y %H:%M') }}</td>
+                                            <td>{{ flight.class_type }}</td>
+                                            <td>£{{ flight.cost }}</td>
+                                            <td>{{ flight.seats }}</td>
+                                            <td>
+                                                <a href="{{ url_for('admin_edit_flight', flight_id=flight.journeyid) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFlightModal{{ flight.journeyid }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                
+                                                <!-- Delete Modal -->
+                                                <div class="modal fade" id="deleteFlightModal{{ flight.journeyid }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Confirm Delete</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                Are you sure you want to delete flight #{{ flight.journeyid }} from {{ flight.dep_location }} to {{ flight.arr_location }}?
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <form action="{{ url_for('admin_delete_flight', flight_id=flight.journeyid) }}" method="POST">
+                                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <p class="text-muted">No flights found in the system. Click "Add New Flight" to create your first flight.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if not show_list %}
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">Flight Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('admin_add_flight') }}">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <!-- Update the travel company dropdown -->
+                                    <label for="id_travelcompany" class="form-label">Travel Company</label>
+                                    <select class="form-select" id="id_travelcompany" name="id_travelcompany" required>
+                                        {% for company in travel_companies %}
+                                            <option value="{{ company.id }}">{{ company.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="flight_number" class="form-label">Flight Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-plane"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="flight_number" name="flight_number" 
+                                               placeholder="e.g. HA123" maxlength="10" required>
+                                        <div class="form-text">Enter a unique flight number (e.g. HA123)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="dep_location" class="form-label">Origin</label>
+                                    <select class="form-select" id="dep_location" name="dep_location" required>
+                                        {% for location in locations %}
+                                            <option value="{{ location }}">{{ location }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="arr_location" class="form-label">Destination</label>
+                                    <select class="form-select" id="arr_location" name="arr_location" required>
+                                        {% for location in locations %}
+                                            <option value="{{ location }}">{{ location }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4" id="departure_date_container">
+                                    <label for="departure_date" class="form-label">Departure Date</label>
+                                    <input type="date" class="form-control" id="departure_date" name="departure_date" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="dep_time" class="form-label">Departure Time</label>
+                                    <input type="time" class="form-control" id="dep_time" name="dep_time" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="arr_time" class="form-label">Arrival Time</label>
+                                    <input type="time" class="form-control" id="arr_time" name="arr_time" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="cost" class="form-label">Economy Price (£)</label>
+                                    <input type="text" class="form-control" id="cost" name="cost" placeholder="e.g. 99.99" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="business_cost" class="form-label">Business Price (£)</label>
+                                    <input type="text" class="form-control" id="business_cost" name="business_cost" placeholder="e.g. 299.99" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">Seat Configuration</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p><strong>Total capacity:</strong> 130 seats (configured as 104 Economy and 26 Business class seats)</p>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="progress mb-2" style="height: 20px;">
+                                                        <div class="progress-bar bg-success" style="width: 80%">Economy (80%)</div>
+                                                        <div class="progress-bar bg-primary" style="width: 20%">Business (20%)</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <input type="hidden" name="economy_seats" value="104">
+                                            <input type="hidden" name="business_seats" value="26">
+                                            <input type="hidden" name="total_seats" value="130">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">Flight Schedule</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="radio" name="schedule_type" id="oneTime" value="one_time" checked>
+                                                <label class="form-check-label" for="oneTime">
+                                                    One-time flight
+                                                </label>
+                                            </div>
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="radio" name="schedule_type" id="recurring" value="recurring">
+                                                <label class="form-check-label" for="recurring">
+                                                    Recurring flight
+                                                </label>
+                                            </div>
+                                            
+                                            <div id="recurringOptions" style="display:none;" class="mb-3">
+                                                <h6 class="mb-3">Weekday Selection:</h6>
+                                                <div class="row mb-3">
+                                                    <div class="col">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="0" id="monday">
+                                                            <label class="form-check-label" for="monday">Monday</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="1" id="tuesday">
+                                                            <label class="form-check-label" for="tuesday">Tuesday</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="2" id="wednesday">
+                                                            <label class="form-check-label" for="wednesday">Wednesday</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="3" id="thursday">
+                                                            <label class="form-check-label" for="thursday">Thursday</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="4" id="friday">
+                                                            <label class="form-check-label" for="friday">Friday</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="5" id="saturday">
+                                                            <label class="form-check-label" for="saturday">Saturday</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="weekdays" value="6" id="sunday">
+                                                            <label class="form-check-label" for="sunday">Sunday</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-info">
+                                                    <i class="fas fa-info-circle"></i> This will automatically generate flights on selected weekdays for the next 6 months.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Add Flight
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Handle scheduling options display
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('departure_date').setAttribute('min', today);
+            
+            // Scheduling options toggle
+            const oneTime = document.getElementById('oneTime');
+            const recurring = document.getElementById('recurring');
+            const recurringOptions = document.getElementById('recurringOptions');
+            const departureDateField = document.getElementById('departure_date');
+            const departureDateContainer = document.getElementById('departure_date_container');
+            
+            oneTime.addEventListener('change', function() {
+                recurringOptions.style.display = 'none';
+                departureDateField.disabled = false;
+                departureDateField.required = true;
+                departureDateContainer.style.display = 'block';
+            });
+            
+            recurring.addEventListener('change', function() {
+                recurringOptions.style.display = 'block';
+                departureDateField.disabled = true;
+                departureDateField.required = false;
+                departureDateContainer.style.display = 'none';
+                // Set date to today as we'll use this as the start date
+                departureDateField.value = today;
+            });
+            
+            // Prevent selecting the same location for origin and destination
+            const depLocation = document.getElementById('dep_location');
+            const arrLocation = document.getElementById('arr_location');
+            
+            depLocation.addEventListener('change', function() {
+                if (depLocation.value === arrLocation.value) {
+                    alert("Origin and destination cannot be the same.");
+                    depLocation.value = "";
+                }
+            });
+            
+            arrLocation.addEventListener('change', function() {
+                if (depLocation.value === arrLocation.value) {
+                    alert("Origin and destination cannot be the same.");
+                    arrLocation.value = "";
+                }
+            });
+
+            // Flight number validation
+            const flightNumberField = document.getElementById('flight_number');
+            flightNumberField.addEventListener('input', function() {
+                // Convert to uppercase automatically
+                this.value = this.value.toUpperCase();
+                
+                // Validate format (letters followed by numbers)
+                const regex = /^[A-Z]{2}\d{1,4}$/;
+                if (this.value && !regex.test(this.value)) {
+                    this.setCustomValidity('Flight number should be 2 letters followed by 1-4 digits (e.g. HA123)');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

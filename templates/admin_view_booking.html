@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Details - Horizon Travel Admin</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #343a40;
+            color: white;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: #007bff;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .booking-header {
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .booking-confirmed {
+            background-color: rgba(25, 135, 84, 0.1);
+            border-left: 5px solid #198754;
+        }
+        
+        .booking-cancelled {
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 5px solid #dc3545;
+        }
+        
+        .booking-pending {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 5px solid #ffc107;
+        }
+        
+        .detail-card {
+            height: 100%;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            list-style: none;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background-color: #e9ecef;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 0;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            border: 2px solid #fff;
+        }
+        
+        .payment-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        @media print {
+            .sidebar, .navbar, .no-print, .btn {
+                display: none !important;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Horizon Travel Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">View Site</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-shield"></i> {{ session.get('admin_username', 'Admin') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_dashboard', show_profile=1) }}">Admin Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">User Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_flights') }}">
+                                <i class="fas fa-plane"></i> Flights
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_bookings') }}">
+                                <i class="fas fa-ticket-alt"></i> Bookings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_reports') }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Booking Details</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <a href="{{ url_for('admin_bookings') }}" class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Bookings
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="window.print()">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cog me-1"></i> Actions
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="actionsDropdown">
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editBookingModal"><i class="fas fa-edit me-1"></i> Edit Booking</a></li>
+                                {% if booking.status == 'Confirmed' %}
+                                <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#cancelBookingModal"><i class="fas fa-ban me-1"></i> Cancel Booking</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal"><i class="fas fa-envelope me-1"></i> Email Customer</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Booking Header -->
+                <div class="booking-header {{ 'booking-confirmed' if booking.status == 'Confirmed' else 'booking-cancelled' if booking.status == 'Cancelled' else 'booking-pending' }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3 class="mb-3">
+                                Booking #{{ booking.booking_reference }}
+                                <span class="badge {{ 'bg-success' if booking.status == 'Confirmed' else 'bg-danger' if booking.status == 'Cancelled' else 'bg-warning' }}">
+                                    {{ booking.status }}
+                                </span>
+                            </h3>
+                            <p class="mb-1">
+                                <i class="fas fa-calendar-alt me-2"></i> Booked on: {{ booking.booking_date.strftime('%d %B %Y, %H:%M') }}
+                            </p>
+                            <p>
+                                <i class="fas fa-user me-2"></i> Customer: <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                                <a href="{{ url_for('admin_edit_user', user_id=user.user_id) }}" class="ms-2 text-decoration-none">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-1">
+                                <i class="fas fa-users me-2"></i> Passengers: <strong>{{ booking.num_passengers }}</strong>
+                            </p>
+                            <p class="mb-1">
+                                <i class="fas fa-money-bill-wave me-2"></i> Total Price: <strong>£{{ booking.total_price }}</strong>
+                            </p>
+                            <p>
+                                <i class="fas fa-credit-card me-2"></i> Payment: <strong>Card ending {{ payment_info.last_four }}</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Details Section -->
+                <div class="row mb-4">
+                    <!-- Flight Details -->
+                    <div class="col-md-6">
+                        <div class="card detail-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-plane me-2"></i>Flight Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="mb-3">
+                                    <span class="badge bg-primary me-2">{{ flight.class_type }}</span>
+                                    Flight #{{ flight.flight_number }}
+                                </h5>
+                                
+                                <div class="d-flex justify-content-between mb-4">
+                                    <div class="text-center">
+                                        <h6 class="text-muted mb-1">Departure</h6>
+                                        <h5>{{ flight.dep_location }}</h5>
+                                        <p class="mb-0">{{ flight.dep_time.strftime('%H:%M') }}</p>
+                                        <p class="text-muted">{{ flight.dep_time.strftime('%d %b %Y') }}</p>
+                                    </div>
+                                    
+                                    <div class="align-self-center">
+                                        <hr style="width: 50px; height: 2px;" class="d-none d-md-block">
+                                        <i class="fas fa-plane mx-2"></i>
+                                    </div>
+                                    
+                                    <div class="text-center">
+                                        <h6 class="text-muted mb-1">Arrival</h6>
+                                        <h5>{{ flight.arr_location }}</h5>
+                                        <p class="mb-0">{{ flight.arr_time.strftime('%H:%M') }}</p>
+                                        <p class="text-muted">{{ flight.arr_time.strftime('%d %b %Y') }}</p>
+                                    </div>
+                                </div>
+                                
+                                <p><strong>Duration:</strong> 
+                                    {% set duration = (flight.arr_time - flight.dep_time).total_seconds() // 60 %}
+                                    {% set hours = (duration // 60)|int %}
+                                    {% set minutes = (duration % 60)|int %}
+                                    {{ hours }}h {{ minutes }}m
+                                </p>
+                                
+                                <p class="mb-0"><strong>Travel Company:</strong> Horizon Airways</p>
+                                
+                                <div class="mt-3 text-center">
+                                    <a href="{{ url_for('admin_edit_flight', flight_id=flight.journeyid) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit me-1"></i> Edit Flight
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Details -->
+                    <div class="col-md-6">
+                        <div class="card detail-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Customer Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Name:</strong></p>
+                                        <p class="mb-3">{{ user.first_name }} {{ user.last_name }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Email:</strong></p>
+                                        <p class="mb-3">{{ user.email }}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Phone:</strong></p>
+                                        <p class="mb-3">{{ user.tel_number }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Date of Birth:</strong></p>
+                                        <p class="mb-3">{{ user.date_of_birth.strftime('%d/%m/%Y') }}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <p class="mb-1"><strong>Address:</strong></p>
+                                    <p class="mb-1">{{ user.address_line_1 }}</p>
+                                    {% if user.address_line_2 %}
+                                    <p class="mb-1">{{ user.address_line_2 }}</p>
+                                    {% endif %}
+                                    {% if user.address_line_3 %}
+                                    <p class="mb-1">{{ user.address_line_3 }}</p>
+                                    {% endif %}
+                                    <p class="mb-0">{{ user.city }}, {{ user.post_code }}</p>
+                                </div>
+                                
+                                <div class="mt-3 text-center">
+                                    <a href="{{ url_for('admin_edit_user', user_id=user.user_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit me-1"></i> Edit Customer Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment and Status Information -->
+                <div class="row mb-4">
+                    <!-- Payment Details -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payment Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="payment-details">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>Payment ID:</strong></p>
+                                            <p class="mb-3">{{ booking.payment_id }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>Payment Method:</strong></p>
+                                            <p class="mb-3">Credit Card •••• {{ payment_info.last_four }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <table class="table">
+                                    <tbody>
+                                        <tr>
+                                            <th>Base Fare</th>
+                                            <td class="text-end">£{{ (flight.cost|float * booking.num_passengers)|round(2) }}</td>
+                                        </tr>
+                                        {% set base_fare = flight.cost|float * booking.num_passengers %}
+                                        {% set total_price = booking.total_price|float %}
+                                        {% if total_price != base_fare %}
+                                            {% if total_price < base_fare %}
+                                                <tr>
+                                                    <th>Discount</th>
+                                                    <td class="text-end text-success">-£{{ (base_fare - total_price)|round(2) }}</td>
+                                                </tr>
+                                            {% else %}
+                                                <tr>
+                                                    <th>Additional Fees</th>
+                                                    <td class="text-end">£{{ (total_price - base_fare)|round(2) }}</td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endif %}
+                                        <tr class="table-active">
+                                            <th>Total</th>
+                                            <td class="text-end fw-bold">£{{ booking.total_price }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                
+                                {% if booking.status == 'Cancelled' %}
+                                <div class="alert alert-danger mt-3">
+                                    <p class="mb-1"><i class="fas fa-exclamation-triangle me-2"></i><strong>This booking has been cancelled</strong></p>
+                                    <p class="mb-0">Any applicable refund has been processed according to our cancellation policy.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Booking Timeline -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Booking Timeline</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="timeline">
+                                    <li class="timeline-item">
+                                        <h6>Booking Created</h6>
+                                        <p class="text-muted">{{ booking.booking_date.strftime('%d %B %Y, %H:%M') }}</p>
+                                        <p>Booking was created with reference {{ booking.booking_reference }}</p>
+                                    </li>
+                                    <li class="timeline-item">
+                                        <h6>Payment Processed</h6>
+                                        <p class="text-muted">{{ booking.booking_date.strftime('%d %B %Y, %H:%M') }}</p>
+                                        <p>Payment of £{{ booking.total_price }} was successfully processed</p>
+                                    </li>
+                                    <li class="timeline-item">
+                                        <h6>Confirmation Email Sent</h6>
+                                        <p class="text-muted">{{ booking.booking_date.strftime('%d %B %Y, %H:%M') }}</p>
+                                        <p>Booking confirmation was sent to {{ user.email }}</p>
+                                    </li>
+                                    {% if booking.status == 'Cancelled' %}
+                                    <li class="timeline-item">
+                                        <h6>Booking Cancelled</h6>
+                                        <p class="text-muted">{{ datetime.now().strftime('%d %B %Y, %H:%M') }}</p>
+                                        <p>Booking was cancelled and applicable refund processed</p>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-end mb-4">
+                    <a href="{{ url_for('admin_bookings') }}" class="btn btn-secondary me-2">Back to Bookings</a>
+                    
+                    {% if booking.status == 'Confirmed' %}
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelBookingModal">
+                        <i class="fas fa-ban me-1"></i> Cancel Booking
+                    </button>
+                    {% endif %}
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Cancel Booking Modal -->
+    <div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Cancel Booking
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel booking <strong>{{ booking.booking_reference }}</strong>?</p>
+                    <p>This action will:</p>
+                    <ul>
+                        <li>Make seats available on the flight</li>
+                        <li>Process any applicable refund</li>
+                        <li>Send cancellation notification to the customer</li>
+                    </ul>
+                    
+                    {% set days_until_flight = (flight.dep_time.date() - datetime.now().date()).days %}
+                    
+                    {% if days_until_flight > 60 %}
+                    <div class="alert alert-info">
+                        <p class="mb-0"><i class="fas fa-info-circle me-2"></i>Customer will receive a full refund as the cancellation is more than 60 days before departure.</p>
+                    </div>
+                    {% elif days_until_flight >= 30 %}
+                    <div class="alert alert-info">
+                        <p class="mb-0"><i class="fas fa-info-circle me-2"></i>Customer will receive a 60% refund as the cancellation is between 30-60 days before departure.</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <p class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>No refund will be issued as the cancellation is less than 30 days before departure.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" class="btn btn-danger">Confirm Cancellation</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Booking Modal -->
+    <div class="modal fade" id="editBookingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Edit Booking
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-center text-muted mb-4">Currently, direct booking editing is limited. For complex changes, please cancel and rebook.</p>
+                    
+                    <form id="editBookingForm">
+                        <div class="mb-3">
+                            <label for="bookingStatus" class="form-label">Status</label>
+                            <select class="form-select" id="bookingStatus">
+                                <option value="Confirmed" {% if booking.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                                <option value="Pending" {% if booking.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Cancelled" {% if booking.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="numPassengers" class="form-label">Number of Passengers</label>
+                            <input type="number" class="form-control" id="numPassengers" value="{{ booking.num_passengers }}" min="1" max="{{ flight.seats }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="specialRequests" class="form-label">Special Requests / Notes</label>
+                            <textarea class="form-control" id="specialRequests" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" disabled>Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Send Email Modal -->
+    <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-envelope me-2"></i>Email Customer
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="emailForm">
+                        <div class="mb-3">
+                            <label for="emailTo" class="form-label">To</label>
+                            <input type="email" class="form-control" id="emailTo" value="{{ user.email }}" readonly>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="emailSubject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="emailSubject" value="Your Horizon Travel Booking #{{ booking.booking_reference }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="emailTemplate" class="form-label">Template</label>
+                            <select class="form-select" id="emailTemplate">
+                                <option value="custom">Custom Message</option>
+                                <option value="reminder">Flight Reminder</option>
+                                <option value="update">Booking Update</option>
+                                <option value="receipt">Payment Receipt</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="emailMessage" class="form-label">Message</label>
+                            <textarea class="form-control" id="emailMessage" rows="5">
+Dear {{ user.first_name }},
+
+Thank you for choosing Horizon Travel.
+
+Your booking details:
+- Booking Reference: {{ booking.booking_reference }}
+- Flight: {{ flight.flight_number }} ({{ flight.class_type }} Class)
+- From: {{ flight.dep_location }}
+- To: {{ flight.arr_location }}
+- Date: {{ flight.dep_time.strftime('%d %B %Y') }}
+- Time: {{ flight.dep_time.strftime('%H:%M') }}
+
+If you have any questions, please don't hesitate to contact our customer service team.
+
+Best regards,
+The Horizon Travel Team
+                            </textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" disabled>Send Email</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Email template selection handler
+            const emailTemplate = document.getElementById('emailTemplate');
+            const emailMessage = document.getElementById('emailMessage');
+            
+            emailTemplate.addEventListener('change', function() {
+                const template = this.value;
+                const customerName = "{{ user.first_name }}";
+                const bookingRef = "{{ booking.booking_reference }}";
+                const flightNumber = "{{ flight.flight_number }}";
+                const flightClass = "{{ flight.class_type }}";
+                const departure = "{{ flight.dep_location }}";
+                const arrival = "{{ flight.arr_location }}";
+                const flightDate = "{{ flight.dep_time.strftime('%d %B %Y') }}";
+                const flightTime = "{{ flight.dep_time.strftime('%H:%M') }}";
+                
+                let messageText = "";
+                
+                switch(template) {
+                    case "reminder":
+                        messageText = `Dear ${customerName},
+
+We're writing to remind you of your upcoming flight with Horizon Travel.
+
+Flight Details:
+- Booking Reference: ${bookingRef}
+- Flight: ${flightNumber} (${flightClass} Class)
+- From: ${departure}
+- To: ${arrival}
+- Date: ${flightDate}
+- Departure Time: ${flightTime}
+
+Please arrive at the airport at least 2 hours before your scheduled departure time.
+
+We wish you a pleasant journey!
+
+Best regards,
+The Horizon Travel Team`;
+                        break;
+                    case "update":
+                        messageText = `Dear ${customerName},
+
+We're writing to inform you about an update to your booking.
+
+Your Booking Details:
+- Booking Reference: ${bookingRef}
+- Flight: ${flightNumber} (${flightClass} Class)
+- From: ${departure}
+- To: ${arrival}
+- Date: ${flightDate}
+- Time: ${flightTime}
+
+[DESCRIBE CHANGES HERE]
+
+You can view your updated booking details by logging into your Horizon Travel account.
+
+If you have any questions or concerns about these changes, please contact our customer service team.
+
+Thank you for your understanding.
+
+Best regards,
+The Horizon Travel Team`;
+                        break;
+                    case "receipt":
+                        messageText = `Dear ${customerName},
+
+Thank you for your payment. This email confirms that we have received your payment for booking #${bookingRef}.
+
+Payment Details:
+- Booking Reference: ${bookingRef}
+- Amount Paid: £{{ booking.total_price }}
+- Payment Method: Card ending with {{ payment_info.last_four }}
+- Payment Date: {{ booking.booking_date.strftime('%d %B %Y') }}
+
+Your booking is confirmed and your e-tickets are attached.
+
+Thank you for choosing Horizon Travel.
+
+Best regards,
+The Horizon Travel Team`;
+                        break;
+                    case "custom":
+                        messageText = emailMessage.value;
+                        break;
+                }
+                
+                if (template !== "custom") {
+                    emailMessage.value = messageText;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

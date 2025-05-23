@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flight Status - Horizon Travel</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Custom styles for the flight status page -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 40px;
+        }
+        
+        .flight-status-container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .page-header {
+            background-color: #343a40;
+            color: white;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-header h2 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .status-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+            border: none;
+            overflow: hidden;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-card .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eaeaea;
+            padding: 15px 20px;
+        }
+        
+        .status-card .card-header h3 {
+            margin: 0;
+            color: #343a40;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .status-card .card-body {
+            padding: 20px;
+            flex: 1;
+        }
+        
+        .flight-search-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .flight-search-form .form-label {
+            font-weight: 500;
+        }
+        
+        .flight-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .flight-endpoint {
+            text-align: center;
+        }
+        
+        .flight-endpoint .airport {
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .flight-endpoint .city {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .flight-endpoint .time {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        .flight-endpoint .date {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .flight-status-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .flight-line {
+            width: 100%;
+            height: 3px;
+            background: #e9ecef;
+            position: relative;
+            margin-bottom: 10px;
+        }
+        
+        .progress-line {
+            height: 3px;
+            background: #007bff;
+            position: absolute;
+            left: 0;
+        }
+        
+        .flight-icon {
+            font-size: 24px;
+            color: #007bff;
+            transform: rotate(90deg);
+            margin: 0 20px;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .status-badge.on-time {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.delayed {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-badge.boarding {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-badge.departed {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-badge.arrived {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .flight-details {
+            margin-top: 20px;
+            border-top: 1px solid #e9ecef;
+            padding-top: 20px;
+        }
+        
+        .flight-detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .flight-detail-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .flight-detail-value {
+            font-weight: 500;
+        }
+        
+        #map {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .recent-searches {
+            margin-top: 20px;
+        }
+        
+        .search-item {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .search-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .flight-tracker {
+            margin-top: 30px;
+        }
+        
+        .tracker-controls {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        @media (max-width: 768px) {
+            .flight-info {
+                flex-direction: column;
+            }
+            
+            .flight-endpoint {
+                margin-bottom: 20px;
+            }
+            
+            .flight-icon {
+                transform: rotate(180deg);
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Horizon Travel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('airtravel') }}">Air Travel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('destinations') }}">Destinations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings') }}">Bookings</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('flightstatus') }}">Flight Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if 'user_id' in session %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}">My Profile</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('signup') }}">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container flight-status-container">
+        <div class="page-header">
+            <h2><i class="fas fa-plane me-2"></i>Flight Status</h2>
+            <div>
+                <button class="btn btn-outline-light" id="refreshButton">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                </button>
+            </div>
+        </div>
+        
+        <!-- Flight Search Section -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-search me-2"></i>Track a Flight</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="flight-search-form" class="flight-search-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="flight-number" class="form-label">Flight Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">HA</span>
+                                        <input type="text" class="form-control" id="flight-number" placeholder="001E" required>
+                                    </div>
+                                    <div class="form-text">Enter your Horizon Airways flight number (e.g. 001E)</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="flight-date" class="form-label">Flight Date</label>
+                                    <input type="date" class="form-control" id="flight-date" value="{{ datetime.now().strftime('%Y-%m-%d') }}">
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary me-2" id="clear-button">Clear</button>
+                                <button type="submit" class="btn btn-primary">Track Flight</button>
+                            </div>
+                        </form>
+                        
+                        <!-- Flight Status Results -->
+                        <div id="flight-status-results" style="display: none;">
+                            <div class="alert alert-info mb-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Showing real-time status for flight <strong id="display-flight-number">HA001E</strong>
+                            </div>
+                            
+                            <div class="flight-info">
+                                <div class="flight-endpoint">
+                                    <div class="airport" id="departure-airport">BRS</div>
+                                    <div class="city" id="departure-city">Bristol</div>
+                                    <div class="time" id="departure-time">08:25</div>
+                                    <div class="date" id="departure-date">28 Apr 2025</div>
+                                </div>
+                                
+                                <div class="flight-status-indicator">
+                                    <div class="flight-line">
+                                        <div class="progress-line" style="width: 40%;"></div>
+                                    </div>
+                                    <i class="fas fa-plane flight-icon"></i>
+                                    <span class="status-badge on-time" id="status-badge">In Flight</span>
+                                </div>
+                                
+                                <div class="flight-endpoint">
+                                    <div class="airport" id="arrival-airport">MAN</div>
+                                    <div class="city" id="arrival-city">Manchester</div>
+                                    <div class="time" id="arrival-time">09:45</div>
+                                    <div class="date" id="arrival-date">28 Apr 2025</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flight-details">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="flight-detail-item">
+                                            <span class="flight-detail-label">Aircraft</span>
+                                            <span class="flight-detail-value">Boeing 737-800</span>
+                                        </div>
+                                        <div class="flight-detail-item">
+                                            <span class="flight-detail-label">Flight Duration</span>
+                                            <span class="flight-detail-value">1h 20m</span>
+                                        </div>
+                                        <div class="flight-detail-item">
+                                            <span class="flight-detail-label">Gate</span>
+                                            <span class="flight-detail-value">B12</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="flight-detail-item">
+                                            <span class="flight-detail-label">Status</span>
+                                            <span class="flight-detail-value">On Time</span>
+                                        </div>
+                                        <div class="flight-detail-item">
+                                            <span class="flight-detail-label">Terminal</span>
+                                            <span class="flight-detail-value">Terminal 1</span>
+                                        </div>
+                                        <div class="flight-detail-item">
+                                            <span class="flight-detail-label">Baggage Claim</span>
+                                            <span class="flight-detail-value">Carousel 3</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history me-2"></i>Recent Searches</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="recent-searches" id="recent-searches">
+                            <div class="search-item">
+                                <div><strong>HA001E</strong> Bristol → Manchester</div>
+                                <div class="text-muted small">28 Apr 2025</div>
+                            </div>
+                            <div class="search-item">
+                                <div><strong>HA459B</strong> London → Edinburgh</div>
+                                <div class="text-muted small">27 Apr 2025</div>
+                            </div>
+                            <div class="search-item">
+                                <div><strong>HA302E</strong> Manchester → Cardiff</div>
+                                <div class="text-muted small">26 Apr 2025</div>
+                            </div>
+                        </div>
+                        
+                        <!-- If logged in, show user's bookings -->
+                        {% if 'user_id' in session %}
+                            <div class="mt-4">
+                                <h5>Your Upcoming Flights</h5>
+                                <div class="list-group">
+                                    {% if user_bookings and user_bookings|length > 0 %}
+                                        {% for booking in user_bookings[:3] %}
+                                            <a href="javascript:void(0)" class="list-group-item list-group-item-action track-my-flight" 
+                                               data-flight-number="{{ booking.flight.flight_number }}">
+                                                <div class="d-flex justify-content-between">
+                                                    <h6 class="mb-1">{{ booking.flight.flight_number }}</h6>
+                                                    <small>{{ booking.flight.dep_time.strftime('%d %b %Y') }}</small>
+                                                </div>
+                                                <p class="mb-1">{{ booking.flight.dep_location }} → {{ booking.flight.arr_location }}</p>
+                                                <small>{{ booking.flight.dep_time.strftime('%H:%M') }}</small>
+                                            </a>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="list-group-item text-muted">No upcoming flights booked</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Flight Tracker Map -->
+        <div class="card status-card">
+            <div class="card-header">
+                <h3><i class="fas fa-map-marked-alt me-2"></i>Live Flight Tracker</h3>
+            </div>
+            <div class="card-body">
+                <div class="tracker-controls">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="show-all-flights" checked>
+                        <label class="form-check-label" for="show-all-flights">
+                            Show all active flights
+                        </label>
+                    </div>
+                    <div>
+                        <select class="form-select form-select-sm" id="map-filter" style="width: auto; display: inline-block;">
+                            <option value="all">All Flights</option>
+                            <option value="departures">Departures</option>
+                            <option value="arrivals">Arrivals</option>
+                            <option value="delayed">Delayed</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" id="center-map">
+                            <i class="fas fa-crosshairs"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- This div will hold the map -->
+                <div id="map"></div>
+                
+                <div class="mt-3 mb-3 text-center">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" id="zoom-out">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="zoom-in">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <p class="text-center text-muted small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Flight data refreshes automatically every 60 seconds. Last updated: 
+                    <span id="last-update-time">{{ datetime.now().strftime('%H:%M:%S') }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css">
+    
+    <script>
+        // Sample flight data - in a real application, this would come from an API
+        const flightData = {
+            'HA001E': {
+                flightNumber: 'HA001E',
+                departure: { code: 'BRS', city: 'Bristol', time: '08:25', date: '28 Apr 2025' },
+                arrival: { code: 'MAN', city: 'Manchester', time: '09:45', date: '28 Apr 2025' },
+                status: 'In Flight',
+                statusClass: 'on-time',
+                progress: 40,
+                aircraft: 'Boeing 737-800',
+                duration: '1h 20m',
+                gate: 'B12',
+                terminal: 'Terminal 1',
+                baggage: 'Carousel 3',
+                coordinates: [51.3832, -2.7193] // Current position
+            },
+            'HA459B': {
+                flightNumber: 'HA459B',
+                departure: { code: 'LON', city: 'London', time: '10:15', date: '27 Apr 2025' },
+                arrival: { code: 'EDI', city: 'Edinburgh', time: '11:50', date: '27 Apr 2025' },
+                status: 'Arrived',
+                statusClass: 'arrived',
+                progress: 100,
+                aircraft: 'Airbus A320',
+                duration: '1h 35m',
+                gate: 'D5',
+                terminal: 'Terminal 2',
+                baggage: 'Carousel 1',
+                coordinates: [55.9533, -3.1883] // Edinburgh
+            },
+            'HA302E': {
+                flightNumber: 'HA302E',
+                departure: { code: 'MAN', city: 'Manchester', time: '15:30', date: '26 Apr 2025' },
+                arrival: { code: 'CWL', city: 'Cardiff', time: '16:40', date: '26 Apr 2025' },
+                status: 'Delayed',
+                statusClass: 'delayed',
+                progress: 0,
+                aircraft: 'Boeing 737-700',
+                duration: '1h 10m',
+                gate: 'C8',
+                terminal: 'Terminal 1',
+                baggage: 'N/A',
+                coordinates: [53.3588, -2.2727] // Manchester
+            }
+        };
+        
+        // UK Airports coordinates
+        const airports = {
+            'BRS': { name: 'Bristol', lat: 51.3833, lng: -2.7194 },
+            'LON': { name: 'London Heathrow', lat: 51.4700, lng: -0.4543 },
+            'EDI': { name: 'Edinburgh', lat: 55.9500, lng: -3.3725 },
+            'CWL': { name: 'Cardiff', lat: 51.3985, lng: -3.3397 },
+            'MAN': { name: 'Manchester', lat: 53.3588, lng: -2.2727 },
+            'GLA': { name: 'Glasgow', lat: 55.8652, lng: -4.4326 },
+            'SOU': { name: 'Southampton', lat: 50.9503, lng: -1.3568 },
+            'BHX': { name: 'Birmingham', lat: 52.4543, lng: -1.7439 },
+            'NCL': { name: 'Newcastle', lat: 55.0375, lng: -1.6914 },
+            'ABZ': { name: 'Aberdeen', lat: 57.2019, lng: -2.1978 }
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize map
+            const map = L.map('map').setView([54.0, -2.5], 6);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add airport markers
+            const airportMarkers = {};
+            for (const [code, airport] of Object.entries(airports)) {
+                const marker = L.marker([airport.lat, airport.lng])
+                    .bindPopup(`<b>${airport.name} (${code})</b><br>Airport`)
+                    .addTo(map);
+                airportMarkers[code] = marker;
+            }
+            
+            // Add flight paths and aircraft markers
+            const flightPaths = {};
+            const aircraftMarkers = {};
+            
+            for (const [flightId, flight] of Object.entries(flightData)) {
+                if (airports[flight.departure.code] && airports[flight.arrival.code]) {
+                    // Create flight path
+                    const depCoords = [airports[flight.departure.code].lat, airports[flight.departure.code].lng];
+                    const arrCoords = [airports[flight.arrival.code].lat, airports[flight.arrival.code].lng];
+                    
+                    const path = L.polyline([depCoords, flight.coordinates || arrCoords], {
+                        color: getFlightStatusColor(flight.status),
+                        weight: 2,
+                        opacity: 0.7,
+                        dashArray: flight.status === 'Delayed' ? '5, 5' : null
+                    }).addTo(map);
+                    
+                    flightPaths[flightId] = path;
+                    
+                    // Create aircraft marker if in flight
+                    if (flight.status === 'In Flight' && flight.coordinates) {
+                        // Create custom plane icon
+                        const planeIcon = L.divIcon({
+                            html: `<div style="transform: rotate(45deg);"><i class="fas fa-plane" style="color: #007bff; font-size: 16px;"></i></div>`,
+                            className: 'plane-icon',
+                            iconSize: [20, 20]
+                        });
+                        
+                        const marker = L.marker(flight.coordinates, { icon: planeIcon })
+                            .bindPopup(`
+                                <b>Flight ${flight.flightNumber}</b><br>
+                                ${flight.departure.code} → ${flight.arrival.code}<br>
+                                Status: ${flight.status}<br>
+                                Progress: ${flight.progress}%
+                            `)
+                            .addTo(map);
+                        
+                        aircraftMarkers[flightId] = marker;
+                    }
+                }
+            }
+            
+            // Function to get color based on flight status
+            function getFlightStatusColor(status) {
+                switch (status) {
+                    case 'In Flight': return '#007bff';
+                    case 'Delayed': return '#ffc107';
+                    case 'Cancelled': return '#dc3545';
+                    case 'Arrived': return '#28a745';
+                    case 'Boarding': return '#17a2b8';
+                    default: return '#6c757d';
+                }
+            }
+            
+            // Function to update flight progress
+            function updateFlightProgress() {
+                for (const [flightId, flight] of Object.entries(flightData)) {
+                    if (flight.status === 'In Flight') {
+                        // In a real implementation, you would get updated coordinates from an API
+                        // For this demo, we'll just increment the progress
+                        flight.progress = Math.min(100, flight.progress + 5);
+                        
+                        // Update the flight position based on progress
+                        if (airports[flight.departure.code] && airports[flight.arrival.code]) {
+                            const depLat = airports[flight.departure.code].lat;
+                            const depLng = airports[flight.departure.code].lng;
+                            const arrLat = airports[flight.arrival.code].lat;
+                            const arrLng = airports[flight.arrival.code].lng;
+                            
+                            const newLat = depLat + ((arrLat - depLat) * (flight.progress / 100));
+                            const newLng = depLng + ((arrLng - depLng) * (flight.progress / 100));
+                            
+                            flight.coordinates = [newLat, newLng];
+                            
+                            if (aircraftMarkers[flightId]) {
+                                aircraftMarkers[flightId].setLatLng(flight.coordinates);
+                            }
+                            
+                            if (flightPaths[flightId]) {
+                                flightPaths[flightId].setLatLngs([
+                                    [airports[flight.departure.code].lat, airports[flight.departure.code].lng],
+                                    flight.coordinates
+                                ]);
+                            }
+                            
+                            // Update status if flight has arrived
+                            if (flight.progress >= 100) {
+                                flight.status = 'Arrived';
+                                flight.statusClass = 'arrived';
+                                
+                                // Update path
+                                if (flightPaths[flightId]) {
+                                    flightPaths[flightId].setStyle({ color: getFlightStatusColor('Arrived') });
+                                }
+                                
+                                // Remove aircraft marker
+                                if (aircraftMarkers[flightId]) {
+                                    map.removeLayer(aircraftMarkers[flightId]);
+                                    delete aircraftMarkers[flightId];
+                                }
+                            }
+                            
+                            // Update display if this is the currently displayed flight
+                            const displayedFlightNumber = document.getElementById('display-flight-number').textContent.replace('HA', '');
+                            if (flightId === displayedFlightNumber) {
+                                updateFlightStatusDisplay(flight);
+                            }
+                        }
+                    }
+                }
+                
+                // Update last refresh time
+                document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
+            }
+            
+            // Set up automatic refresh
+            const refreshInterval = setInterval(updateFlightProgress, 60000);  // Every 60 seconds
+            
+            // Manual refresh button
+            document.getElementById('refreshButton').addEventListener('click', function() {
+                updateFlightProgress();
+                this.disabled = true;
+                setTimeout(() => { this.disabled = false; }, 2000);  // Prevent spam clicking
+            });
+            
+            // Flight search form submission
+            document.getElementById('flight-search-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const flightNumber = document.getElementById('flight-number').value;
+                const fullFlightNumber = 'HA' + flightNumber;
+                
+                // Check if flight exists in our data
+                if (flightData[fullFlightNumber]) {
+                    displayFlightStatus(fullFlightNumber);
+                    
+                    // Add to recent searches if not already there
+                    addToRecentSearches(fullFlightNumber);
+                    
+                    // Focus map on the flight
+                    focusMapOnFlight(fullFlightNumber);
+                } else {
+                    alert('Flight not found. Please check the flight number and try again.');
+                }
+            });
+            
+            // Clear button
+            document.getElementById('clear-button').addEventListener('click', function() {
+                document.getElementById('flight-number').value = '';
+                document.getElementById('flight-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('flight-status-results').style.display = 'none';
+            });
+            
+            // Recent search click handler
+            document.getElementById('recent-searches').addEventListener('click', function(event) {
+                let searchItem = event.target.closest('.search-item');
+                if (searchItem) {
+                    const flightText = searchItem.querySelector('strong').textContent;
+                    displayFlightStatus(flightText);
+                    focusMapOnFlight(flightText);
+                }
+            });
+            
+            // Track user's flight click handler
+            document.querySelectorAll('.track-my-flight').forEach(item => {
+                item.addEventListener('click', function() {
+                    const flightNumber = this.getAttribute('data-flight-number');
+                    document.getElementById('flight-number').value = flightNumber.replace('HA', '');
+                    document.getElementById('flight-search-form').dispatchEvent(new Event('submit'));
+                });
+            });
+            
+            // Map zoom controls
+            document.getElementById('zoom-in').addEventListener('click', function() {
+                map.setZoom(map.getZoom() + 1);
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', function() {
+                map.setZoom(map.getZoom() - 1);
+            });
+            
+            document.getElementById('center-map').addEventListener('click', function() {
+                map.setView([54.0, -2.5], 6);
+            });
+            
+            // Function to display flight status
+            function displayFlightStatus(flightNumber) {
+                const flight = flightData[flightNumber];
+                if (!flight) return;
+                
+                // Show the results section
+                document.getElementById('flight-status-results').style.display = 'block';
+                
+                // Set the displayed flight number
+                document.getElementById('display-flight-number').textContent = flightNumber;
+                
+                // Update the flight details
+                updateFlightStatusDisplay(flight);
+                
+                // Scroll to results
+                document.getElementById('flight-status-results').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+            
+            // Function to update flight status display details
+            function updateFlightStatusDisplay(flight) {
+                document.getElementById('departure-airport').textContent = flight.departure.code;
+                document.getElementById('departure-city').textContent = flight.departure.city;
+                document.getElementById('departure-time').textContent = flight.departure.time;
+                document.getElementById('departure-date').textContent = flight.departure.date;
+                
+                document.getElementById('arrival-airport').textContent = flight.arrival.code;
+                document.getElementById('arrival-city').textContent = flight.arrival.city;
+                document.getElementById('arrival-time').textContent = flight.arrival.time;
+                document.getElementById('arrival-date').textContent = flight.arrival.date;
+                
+                // Update progress line
+                document.querySelector('.progress-line').style.width = `${flight.progress}%`;
+                
+                // Update status badge
+                const statusBadge = document.getElementById('status-badge');
+                statusBadge.textContent = flight.status;
+                statusBadge.className = `status-badge ${flight.statusClass}`;
+            }
+            
+            // Function to add a flight to recent searches
+            function addToRecentSearches(flightNumber) {
+                const flight = flightData[flightNumber];
+                if (!flight) return;
+                
+                // Check if this flight is already in recent searches
+                const existingItems = document.querySelectorAll('.search-item strong');
+                for (let item of existingItems) {
+                    if (item.textContent === flightNumber) {
+                        // Move to top instead of adding duplicate
+                        item.closest('.search-item').remove();
+                        break;
+                    }
+                }
+                
+                // Create new search item
+                const searchItem = document.createElement('div');
+                searchItem.className = 'search-item';
+                searchItem.innerHTML = `
+                    <div><strong>${flightNumber}</strong> ${flight.departure.code} → ${flight.arrival.code}</div>
+                    <div class="text-muted small">${flight.departure.date}</div>
+                `;
+                
+                // Add to the top of the list
+                const recentSearches = document.getElementById('recent-searches');
+                recentSearches.insertBefore(searchItem, recentSearches.firstChild);
+                
+                // Limit to 5 recent searches
+                if (recentSearches.children.length > 5) {
+                    recentSearches.removeChild(recentSearches.lastChild);
+                }
+            }
+            
+            // Function to focus map on a specific flight
+            function focusMapOnFlight(flightNumber) {
+                const flight = flightData[flightNumber];
+                if (!flight) return;
+                
+                if (flight.coordinates) {
+                    map.setView(flight.coordinates, 8);
+                } else if (airports[flight.departure.code]) {
+                    map.setView([airports[flight.departure.code].lat, airports[flight.departure.code].lng], 8);
+                }
+                
+                // Highlight the flight path
+                for (const [id, path] of Object.entries(flightPaths)) {
+                    if (id === flightNumber) {
+                        path.setStyle({ weight: 4, opacity: 1 });
+                    } else {
+                        path.setStyle({ weight: 2, opacity: 0.5 });
+                    }
+                }
+                
+                // Open popup for this flight
+                if (aircraftMarkers[flightNumber]) {
+                    aircraftMarkers[flightNumber].openPopup();
+                } else if (airportMarkers[flight.departure.code]) {
+                    airportMarkers[flight.departure.code].openPopup();
+                }
+            }
+            
+            // Filter flights by type
+            document.getElementById('map-filter').addEventListener('change', function() {
+                const filter = this.value;
+                
+                for (const [flightId, flight] of Object.entries(flightData)) {
+                    let shouldShow = true;
+                    
+                    switch (filter) {
+                        case 'departures':
+                            shouldShow = flight.status === 'On Time' || flight.status === 'Boarding' || flight.status === 'Delayed';
+                            break;
+                        case 'arrivals':
+                            shouldShow = flight.status === 'In Flight' || flight.status === 'Arrived';
+                            break;
+                        case 'delayed':
+                            shouldShow = flight.status === 'Delayed';
+                            break;
+                        default:
+                            shouldShow = true;
+                    }
+                    
+                    if (flightPaths[flightId]) {
+                        if (shouldShow) {
+                            if (!map.hasLayer(flightPaths[flightId])) {
+                                flightPaths[flightId].addTo(map);
+                            }
+                        } else {
+                            if (map.hasLayer(flightPaths[flightId])) {
+                                map.removeLayer(flightPaths[flightId]);
+                            }
+                        }
+                    }
+                    
+                    if (aircraftMarkers[flightId]) {
+                        if (shouldShow) {
+                            if (!map.hasLayer(aircraftMarkers[flightId])) {
+                                aircraftMarkers[flightId].addTo(map);
+                            }
+                        } else {
+                            if (map.hasLayer(aircraftMarkers[flightId])) {
+                                map.removeLayer(aircraftMarkers[flightId]);
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Show/hide all flights toggle
+            document.getElementById('show-all-flights').addEventListener('change', function() {
+                const showAll = this.checked;
+                
+                for (const [flightId, path] of Object.entries(flightPaths)) {
+                    if (showAll) {
+                        if (!map.hasLayer(path)) {
+                            path.addTo(map);
+                        }
+                    } else {
+                        if (map.hasLayer(path)) {
+                            map.removeLayer(path);
+                        }
+                    }
+                }
+                
+                for (const [flightId, marker] of Object.entries(aircraftMarkers)) {
+                    if (showAll) {
+                        if (!map.hasLayer(marker)) {
+                            marker.addTo(map);
+                        }
+                    } else {
+                        if (map.hasLayer(marker)) {
+                            map.removeLayer(marker);
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+    Student Number: 24026055—->

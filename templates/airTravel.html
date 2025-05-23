@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon Travel - Book Your Flight</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Background */
+        body {
+            background: url('{{ url_for('static', filename='images/plane.png') }}') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+        }
+
+        .full-width-card {
+            background: rgba(255, 255, 255, 0.75);
+            border-radius: 10px;
+            padding: 40px;
+            width: 95%;
+            max-width: 1200px;
+            margin: 50px auto;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-label {
+            font-weight: bold;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            font-size: 18px;
+            padding: 12px;
+        }
+
+        /* Add styling for flash messages */
+        .alert {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Horizon Travel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('destinations') }}">Destinations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings') }}">Bookings</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('flightstatus') }}">Flight Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Add flash messages section here, right before the card -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mt-4" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="full-width-card text-center">
+            <h2>Book Your Flight</h2>
+            <p>Air Travel will feel like a breeze when you book through us! Don't wait to spread your wings.</p>
+
+            <form action="{{ url_for('search_flights') }}" method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="origin" class="form-label">Origin:</label>
+                        <select id="origin" name="origin" class="form-select" required>
+                            <option value="">Select Origin</option>
+                            <option value="Bristol(BRS)">Bristol(BRS)</option>
+                            <option value="London(LON)">London(LON)</option>
+                            <option value="Edinburgh(EDI)">Edinburgh(EDI)</option>
+                            <option value="Cardiff(CWL)">Cardiff(CWL)</option>
+                            <option value="Manchester(MAN)">Manchester(MAN)</option>
+                            <option value="Glasgow(GLA)">Glasgow(GLA)</option>
+                            <option value="Portsmouth">Portsmouth</option>
+                            <option value="Dundee(DND)">Dundee(DND)</option>
+                            <option value="Southampton(SOU)">Southampton(SOU)</option>
+                            <option value="Birmingham(BHX)">Birmingham(BHX)</option>
+                            <option value="Newcastle(NCL)">Newcastle(NCL)</option>
+                            <option value="Aberdeen(ABZ)">Aberdeen(ABZ)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="destination" class="form-label">Destination:</label>
+                        <select id="destination" name="destination" class="form-select" required>
+                            <option value="">Select Destination</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="date" class="form-label">Travel Date:</label>
+                        <input type="date" id="date" name="date" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="time" class="form-label">Travel Time:</label>
+                        <input type="time" id="time" name="time" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="travellers" class="form-label">Number of Travelers:</label>
+                        <input type="number" id="travellers" name="travellers" class="form-control" min="1" value="1" required>
+                    </div>
+                </div>
+
+                <!-- Flight Type Selection -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <label class="form-label">Flight Type:</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="flightType" id="oneWay" value="oneWay" checked>
+                            <label class="form-check-label" for="oneWay">One-Way</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="flightType" id="return" value="return">
+                            <label class="form-check-label" for="return">Return</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Return Date (Initially Hidden) -->
+                <div class="row" id="returnDateRow" style="display: none;">
+                    <div class="col-md-4">
+                        <label for="returnDate" class="form-label">Return Date:</label>
+                        <input type="date" id="returnDate" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Class Type Selection -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <label for="class-type" class="form-label">Class Type:</label>
+                        <select id="class-type" name="class_type" class="form-select" required>
+                            <option value="Economy">Economy</option>
+                            <option value="Business">Business</option>
+                            <option value="First Class">First Class</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary">Search Flights</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Add Font Awesome for the alert icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        const destinations = {
+            "Bristol(BRS)": ["Newcastle(NCL)", "Manchester(MAN)", "London(LON)", "Glasgow(GLA)"],
+            "Dundee(DND)": ["Portsmouth"],
+            "Newcastle(NCL)": ["Bristol(BRS)", "Manchester(MAN)", "Birmingham(BHX)"],
+            "Cardiff(CWL)": ["Edinburgh(EDI)"],
+            "Manchester(MAN)": ["Bristol(BRS)", "Glasgow(GLA)", "Southampton(SOU)"],
+            "London(LON)": ["Manchester(MAN)"],
+            "Glasgow(GLA)": ["Newcastle(NCL)"],
+            "Portsmouth": ["Dundee(DND)"],
+            "Edinburgh": ["Cardiff(CWL)"],
+            "Southampton(SOU)": ["Manchester(MAN)"],
+            "Birmingham(BHX)": ["Newcastle(NCL)"],
+            "Aberdeen(ABZ)": ["Portsmouth"]
+        };
+
+        function updateDestinations() {
+            const origin = document.getElementById("origin").value;
+            const destinationSelect = document.getElementById("destination");
+            destinationSelect.innerHTML = '<option value="">Select Destination</option>';
+            if (destinations[origin]) {
+                destinations[origin].forEach(function(destination) {
+                    const option = document.createElement("option");
+                    option.value = destination;
+                    option.textContent = destination;
+                    destinationSelect.appendChild(option);
+                });
+            }
+        }
+
+        document.getElementById("origin").addEventListener("change", updateDestinations);
+
+        document.getElementById('date').setAttribute('min', new Date().toISOString().split('T')[0]);
+
+        document.getElementById('date').addEventListener('change', function() {
+            const today = new Date().toISOString().split('T')[0];
+            const timeInput = document.getElementById('time');
+
+            if (this.value === today) {
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+                timeInput.setAttribute('min', currentTime);
+            } else {
+                timeInput.removeAttribute('min');
+            }
+        });
+
+        // Add event listeners for flight type selection
+        document.getElementById("oneWay").addEventListener("change", function() {
+            document.getElementById("returnDateRow").style.display = "none";  
+        });
+
+        document.getElementById("return").addEventListener("change", function() {
+            document.getElementById("returnDateRow").style.display = "block";  
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get date field
+            const dateInput = document.getElementById('date');
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('min', today);
+            
+            // Calculate and set maximum date (6 months from now)
+            const sixMonthsFromNow = new Date();
+            sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+            const maxDate = sixMonthsFromNow.toISOString().split('T')[0];
+            dateInput.setAttribute('max', maxDate);
+            
+            // Add form validation
+            document.querySelector('form').addEventListener('submit', function(event) {
+                const selectedDate = new Date(dateInput.value);
+                const maxAllowedDate = new Date(maxDate);
+                
+                if (selectedDate > maxAllowedDate) {
+                    event.preventDefault();
+                    alert(`Flights are only available up to 6 months in advance (until ${maxDate}). Flights for your requested date will be available at a later time.`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

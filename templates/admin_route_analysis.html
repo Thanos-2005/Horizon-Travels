@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Analysis - Horizon Travel Admin</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #343a40;
+            color: white;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: #007bff;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .table-responsive {
+            margin-top: 20px;
+        }
+        
+        .print-hide {
+            display: block;
+        }
+        
+        @media print {
+            .sidebar, .navbar, .report-actions, .print-hide {
+                display: none !important;
+            }
+            
+            .main-content {
+                padding: 0;
+                margin: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container-fluid {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .card {
+                border: none;
+            }
+            
+            .card-body {
+                padding: 0;
+            }
+            
+            canvas {
+                max-width: 100%;
+                height: auto !important;
+            }
+            
+            .watermark {
+                display: block;
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                opacity: 0.5;
+                font-size: 12px;
+                color: #999;
+            }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .route-card {
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .route-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .profitable {
+            border-left: 4px solid #198754;
+        }
+        
+        .loss-making {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .route-summary {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .route-icon {
+            font-size: 32px;
+            margin-right: 20px;
+            color: #0d6efd;
+        }
+        
+        .watermark {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark print-hide">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Horizon Travel Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">View Site</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-shield"></i> {{ session.get('admin_username', 'Admin') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_dashboard', show_profile=1) }}">Admin Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">User Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse print-hide">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_flights') }}">
+                                <i class="fas fa-plane"></i> Flights
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_bookings') }}">
+                                <i class="fas fa-ticket-alt"></i> Bookings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_reports') }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom print-hide">
+                    <h1 class="h2"><i class="fas fa-route text-primary me-2"></i>Route Analysis</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0 report-actions">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printReport()">
+                                <i class="fas fa-print me-1"></i> Print
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="downloadPDF()">
+                                <i class="fas fa-file-pdf me-1"></i> Download PDF
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="downloadCSV()">
+                                <i class="fas fa-file-csv me-1"></i> Download CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Filtering Options -->
+                <div class="card mb-4 print-hide">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label for="routeFilter" class="form-label">Filter Routes:</label>
+                                <select id="routeFilter" class="form-select">
+                                    <option value="all" selected>All Routes</option>
+                                    <option value="profitable">Profitable Routes</option>
+                                    <option value="loss">Loss-Making Routes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="sortBy" class="form-label">Sort By:</label>
+                                <select id="sortBy" class="form-select">
+                                    <option value="profit" selected>Profit (High to Low)</option>
+                                    <option value="revenue">Revenue (High to Low)</option>
+                                    <option value="margin">Profit Margin (High to Low)</option>
+                                    <option value="bookings">Bookings (High to Low)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary mt-3" id="applyFilters">Apply Filters</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div id="reportContent">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h2 class="mb-0">Route Performance Analysis</h2>
+                            <p class="text-muted mb-0">Generated on {{ datetime.now().strftime('%d %B %Y, %H:%M') }}</p>
+                        </div>
+                        <div class="card-body">
+                            <!-- Report Summary -->
+                            <div class="route-summary">
+                                <div class="route-icon">
+                                    <i class="fas fa-project-diagram"></i>
+                                </div>
+                                <div>
+                                    <h4>Route Performance Overview</h4>
+                                    <p class="mb-0">This report analyzes the performance of all flight routes based on bookings, revenue, and profitability.</p>
+                                </div>
+                            </div>
+
+                            <!-- Summary Statistics -->
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Total Routes</h5>
+                                            <p class="display-6">{{ route_analysis|length }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Profitable Routes</h5>
+                                            <p class="display-6">{{ route_analysis|selectattr('profit', 'gt', 0)|list|length }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-danger text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Loss-Making Routes</h5>
+                                            <p class="display-6">{{ route_analysis|selectattr('profit', 'le', 0)|list|length }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Average Profit Margin</h5>
+                                            <p class="display-6">
+                                                {% set total_margin = route_analysis|sum(attribute='profit_margin') %}
+                                                {% set avg_margin = total_margin / route_analysis|length if route_analysis|length > 0 else 0 %}
+                                                {{ '%.1f'|format(avg_margin) }}%
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Total Profit</h5>
+                                            <p class="display-6">£{{ '%.2f'|format(report_summary.total_profit) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts -->
+                            <div class="chart-container">
+                                <canvas id="profitChart"></canvas>
+                            </div>
+
+                            <div class="chart-container">
+                                <canvas id="marginChart"></canvas>
+                            </div>
+
+                            <!-- Data Table -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered" id="routes-table">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Route</th>
+                                            <th>Bookings</th>
+                                            <th>Revenue (£)</th>
+                                            <th>Cost (£)</th>
+                                            <th>Profit/Loss (£)</th>
+                                            <th>Profit Margin (%)</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for route in route_analysis %}
+                                            <tr class="route-row" data-status="{{ route.status|lower }}">
+                                                <td>{{ route.departure }} → {{ route.arrival }}</td>
+                                                <td>{{ route.bookings }}</td>
+                                                <td>{{ '%.2f'|format(route.revenue) }}</td>
+                                                <td>{{ '%.2f'|format(route.cost) }}</td>
+                                                <td class="{{ 'text-success' if route.profit > 0 else 'text-danger' }}">
+                                                    {{ '%.2f'|format(route.profit) }}
+                                                </td>
+                                                <td>{{ '%.1f'|format(route.profit_margin) }}%</td>
+                                                <td>
+                                                    {% if route.status == 'Profitable' %}
+                                                        <span class="badge bg-success">{{ route.status }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">{{ route.status }}</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-dark">
+                                        <tr>
+                                            <th>Total</th>
+                                            <th>{{ route_analysis|sum(attribute='bookings') }}</th>
+                                            <th>{{ '%.2f'|format(route_analysis|sum(attribute='revenue')) }}</th>
+                                            <th>{{ '%.2f'|format(route_analysis|sum(attribute='cost')) }}</th>
+                                            <th>{{ '%.2f'|format(route_analysis|sum(attribute='profit')) }}</th>
+                                            <th>
+                                                {% set total_revenue = route_analysis|sum(attribute='revenue') %}
+                                                {% set total_profit = route_analysis|sum(attribute='profit') %}
+                                                {% if total_revenue > 0 %}
+                                                    {{ '%.1f'|format(total_profit / total_revenue * 100) }}%
+                                                {% else %}
+                                                    0.0%
+                                                {% endif %}
+                                            </th>
+                                            <th>-</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Detailed Analysis Section -->
+                            <div class="mt-5">
+                                <h4>Route Analysis Details</h4>
+                                
+                                <!-- Top Performing Routes -->
+                                <h5 class="mt-4">Top Performing Routes</h5>
+                                <div class="row">
+                                    {% set sorted_routes = route_analysis|sort(attribute='profit', reverse=true) %}
+                                    {% for route in sorted_routes[:3] %}
+                                        <div class="col-md-4">
+                                            <div class="card route-card profitable">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">{{ route.departure }} → {{ route.arrival }}</h6>
+                                                    <p class="card-text">
+                                                        <i class="fas fa-pound-sign text-success me-1"></i> Profit: <strong>£{{ '%.2f'|format(route.profit) }}</strong><br>
+                                                        <i class="fas fa-percentage text-info me-1"></i> Margin: <strong>{{ '%.1f'|format(route.profit_margin) }}%</strong><br>
+                                                        <i class="fas fa-users text-primary me-1"></i> Bookings: <strong>{{ route.bookings }}</strong>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Worst Performing Routes -->
+                                <h5 class="mt-4">Routes Needing Attention</h5>
+                                <div class="row">
+                                    {% set sorted_routes = route_analysis|sort(attribute='profit') %}
+                                    {% for route in sorted_routes[:3] %}
+                                        <div class="col-md-4">
+                                            <div class="card route-card loss-making">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">{{ route.departure }} → {{ route.arrival }}</h6>
+                                                    <p class="card-text">
+                                                        <i class="fas fa-pound-sign text-danger me-1"></i> Loss: <strong>£{{ '%.2f'|format(route.profit) }}</strong><br>
+                                                        <i class="fas fa-percentage text-info me-1"></i> Margin: <strong>{{ '%.1f'|format(route.profit_margin) }}%</strong><br>
+                                                        <i class="fas fa-users text-primary me-1"></i> Bookings: <strong>{{ route.bookings }}</strong>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Key Insights -->
+                                <div class="card mt-4">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Key Insights</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            {% set profitable_count = route_analysis|selectattr('profit', 'gt', 0)|list|length %}
+                                            {% set loss_count = route_analysis|selectattr('profit', 'le', 0)|list|length %}
+                                            {% set total_routes = route_analysis|length %}
+                                            
+                                            <li>{{ profitable_count }} out of {{ total_routes }} routes ({{ '%.1f'|format(profitable_count/total_routes*100 if total_routes > 0 else 0) }}%) are profitable.</li>
+                                            
+                                            {% set most_profitable_route = route_analysis|sort(attribute='profit', reverse=true)|first %}
+                                            <li>Most profitable route: <strong>{{ most_profitable_route.departure }} → {{ most_profitable_route.arrival }}</strong> with profit of <strong>£{{ '%.2f'|format(most_profitable_route.profit) }}</strong></li>
+                                            
+                                            {% set highest_margin_route = route_analysis|sort(attribute='profit_margin', reverse=true)|first %}
+                                            <li>Highest profit margin: <strong>{{ highest_margin_route.departure }} → {{ highest_margin_route.arrival }}</strong> with margin of <strong>{{ '%.1f'|format(highest_margin_route.profit_margin) }}%</strong></li>
+                                            
+                                            {% set most_booked_route = route_analysis|sort(attribute='bookings', reverse=true)|first %}
+                                            <li>Most booked route: <strong>{{ most_booked_route.departure }} → {{ most_booked_route.arrival }}</strong> with <strong>{{ most_booked_route.bookings }}</strong> bookings</li>
+                                        </ul>
+                                        
+                                        <h6>Recommendations:</h6>
+                                        <ul>
+                                            {% if loss_count > 0 %}
+                                                <li>Consider reviewing pricing or reducing costs for loss-making routes.</li>
+                                            {% endif %}
+                                            <li>Increase marketing efforts for high-profit margin routes to boost bookings.</li>
+                                            <li>Analyze seasonal variations in route performance to optimize scheduling.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watermark for printed/PDF version -->
+                <div class="watermark">
+                    Generated by Horizon Travel Admin System | {{ datetime.now().strftime('%d %B %Y, %H:%M') }}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Convert route_analysis data to JavaScript array
+        const routes = {{ route_analysis|tojson }};
+        
+        // Chart initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            const profitCtx = document.getElementById('profitChart').getContext('2d');
+            const marginCtx = document.getElementById('marginChart').getContext('2d');
+            
+            // Sort routes by profit for chart display
+            const sortedRoutes = [...routes].sort((a, b) => b.profit - a.profit);
+            const topRoutes = sortedRoutes.slice(0, 10);  // Show top 10 routes by profit
+            
+            // Prepare data for profit chart
+            const routeLabels = topRoutes.map(r => `${r.departure} → ${r.arrival}`);
+            const profitData = topRoutes.map(r => r.profit);
+            const revenueData = topRoutes.map(r => r.revenue);
+            const costData = topRoutes.map(r => r.cost);
+            
+            // Create profit chart
+            const profitChart = new Chart(profitCtx, {
+                type: 'bar',
+                data: {
+                    labels: routeLabels,
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: revenueData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Cost',
+                            data: costData,
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Profit',
+                            data: profitData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (£)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Routes'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Revenue, Cost and Profit by Route (Top 10)',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Sort routes by profit margin for the second chart
+            const marginSorted = [...routes].sort((a, b) => b.profit_margin - a.profit_margin);
+            const topMarginRoutes = marginSorted.slice(0, 10);
+            
+            // Prepare data for margin chart
+            const marginLabels = topMarginRoutes.map(r => `${r.departure} → ${r.arrival}`);
+            const marginData = topMarginRoutes.map(r => r.profit_margin);
+            
+            // Determine colors based on profitability
+            const marginColors = marginData.map(margin => 
+                margin > 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)'
+            );
+            
+            // Create margin chart
+            const marginChart = new Chart(marginCtx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: marginLabels,
+                    datasets: [{
+                        label: 'Profit Margin (%)',
+                        data: marginData,
+                        backgroundColor: marginColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Profit Margin (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Profit Margin by Route (Top 10)',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Setup filtering
+            const routeFilter = document.getElementById('routeFilter');
+            const sortBy = document.getElementById('sortBy');
+            const applyFilters = document.getElementById('applyFilters');
+            const routeRows = document.querySelectorAll('.route-row');
+            
+            applyFilters.addEventListener('click', function() {
+                const filterValue = routeFilter.value;
+                
+                // Filter rows
+                routeRows.forEach(row => {
+                    const status = row.getAttribute('data-status');
+                    let visible = true;
+                    
+                    if (filterValue === 'profitable' && status !== 'profitable') {
+                        visible = false;
+                    } else if (filterValue === 'loss' && status !== 'loss-making') {
+                        visible = false;
+                    }
+                    
+                    row.style.display = visible ? '' : 'none';
+                });
+                
+                // Sort rows based on selected criteria
+                const table = document.getElementById('routes-table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                rows.sort((a, b) => {
+                    let valueA, valueB;
+                    
+                    switch(sortBy.value) {
+                        case 'profit':
+                            valueA = parseFloat(a.cells[4].textContent);
+                            valueB = parseFloat(b.cells[4].textContent);
+                            break;
+                        case 'revenue':
+                            valueA = parseFloat(a.cells[2].textContent);
+                            valueB = parseFloat(b.cells[2].textContent);
+                            break;
+                        case 'margin':
+                            valueA = parseFloat(a.cells[5].textContent);
+                            valueB = parseFloat(b.cells[5].textContent);
+                            break;
+                        case 'bookings':
+                            valueA = parseInt(a.cells[1].textContent);
+                            valueB = parseInt(b.cells[1].textContent);
+                            break;
+                        default:
+                            valueA = 0;
+                            valueB = 0;
+                    }
+                    
+                    return valueB - valueA;  // Sort in descending order
+                });
+                
+                // Re-append rows in new order
+                rows.forEach(row => {
+                    tbody.appendChild(row);
+                });
+            });
+        });
+        
+        // Print function
+        function printReport() {
+            window.print();
+        }
+        
+        // Download PDF function
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Route Performance Analysis', 149, 15, { align: 'center' });
+            
+            // Add generation timestamp
+            doc.setFontSize(10);
+            doc.text(`Generated on ${new Date().toLocaleString()}`, 149, 20, { align: 'center' });
+            
+            // Add summary statistics
+            doc.setFontSize(12);
+            doc.text('Summary Statistics', 14, 30);
+            
+            const profitableCount = routes.filter(r => r.profit > 0).length;
+            const lossCount = routes.filter(r => r.profit <= 0).length;
+            
+            doc.setFontSize(10);
+            doc.text(`Total Routes: ${routes.length}`, 14, 35);
+            doc.text(`Profitable Routes: ${profitableCount}`, 14, 40);
+            doc.text(`Loss-Making Routes: ${lossCount}`, 14, 45);
+            
+            // Add table
+            const tableColumn = ["Route", "Bookings", "Revenue (£)", "Cost (£)", "Profit (£)", "Margin (%)", "Status"];
+            const tableRows = [];
+            
+            routes.forEach(route => {
+                const tableRow = [
+                    `${route.departure} → ${route.arrival}`,
+                    route.bookings,
+                    route.revenue.toFixed(2),
+                    route.cost.toFixed(2),
+                    route.profit.toFixed(2),
+                    `${route.profit_margin.toFixed(1)}%`,
+                    route.status
+                ];
+                tableRows.push(tableRow);
+            });
+            
+            // Add the table to the PDF
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 50,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [66, 139, 202] }
+            });
+            
+            // Add insights section
+            const mostProfitable = [...routes].sort((a, b) => b.profit - a.profit)[0];
+            const highestMargin = [...routes].sort((a, b) => b.profit_margin - a.profit_margin)[0];
+            
+            doc.text("Key Insights:", 14, doc.lastAutoTable.finalY + 10);
+            doc.text(`- Most profitable route: ${mostProfitable.departure} → ${mostProfitable.arrival} (£${mostProfitable.profit.toFixed(2)})`, 14, doc.lastAutoTable.finalY + 15);
+            doc.text(`- Highest margin route: ${highestMargin.departure} → ${highestMargin.arrival} (${highestMargin.profit_margin.toFixed(1)}%)`, 14, doc.lastAutoTable.finalY + 20);
+            doc.text(`- ${profitableCount} out of ${routes.length} routes (${(profitableCount/routes.length*100).toFixed(1)}%) are profitable`, 14, doc.lastAutoTable.finalY + 25);
+            
+            // Add footer
+            doc.setFontSize(8);
+            doc.text("Horizon Travel Admin System", 14, 200);
+            doc.text(new Date().toLocaleString(), 250, 200);
+            
+            // Save PDF
+            doc.save('route_analysis_report.pdf');
+        }
+        
+        // Download CSV function
+        function downloadCSV() {
+            // Create CSV content
+            let csvContent = "Route,Bookings,Revenue (£),Cost (£),Profit/Loss (£),Profit Margin (%),Status\n";
+            
+            routes.forEach(route => {
+                csvContent += `"${route.departure} → ${route.arrival}",${route.bookings},${route.revenue.toFixed(2)},${route.cost.toFixed(2)},${route.profit.toFixed(2)},${route.profit_margin.toFixed(1)}%,${route.status}\n`;
+            });
+            
+            // Create download link
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "route_analysis_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

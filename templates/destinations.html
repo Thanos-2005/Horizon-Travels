@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destinations | Horizon Travel</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="bg-light p-3">
+    <h1 class="text-center">Horizon Travel</h1>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('airtravel') }}">Air Travel</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings') }}">Bookings</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('flightstatus') }}">Flight Status</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a></li>
+            </ul>
+        </div>
+    </nav>
+</header>
+
+<main class="container my-5">
+
+  <h2 class="text-center mb-4">Explore Our Destinations</h2>
+
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+
+      <!-- Destination Card: Bristol -->
+      <div class="col">
+          <div class="card h-100 shadow">
+              <img src="{{ url_for('static', filename='images/bristol.jpg') }}" class="card-img-top" alt="Bristol">
+              <div class="card-body">
+                  <h5 class="card-title">Bristol</h5>
+                  <p class="card-text">Explore the beautiful city of Bristol with its rich history and stunning harbourside.</p>
+                  <a href="{{ url_for('destination_detail', city='bristol') }}" class="btn btn-primary">Learn More</a>
+              </div>
+          </div>
+      </div>
+
+      <!-- Destination Card: Edinburgh -->
+      <div class="col">
+          <div class="card h-100 shadow">
+              <img src="{{ url_for('static', filename='images/edinburgh.jpg') }}" class="card-img-top" alt="Edinburgh">
+              <div class="card-body">
+                  <h5 class="card-title">Edinburgh</h5>
+                  <p class="card-text">Experience the charm of Edinburgh, with its castle and historic streets.</p>
+                  <a href="{{ url_for('destination_detail', city='edinburgh') }}" class="btn btn-primary">Learn More</a>
+              </div>
+          </div>
+      </div>
+
+      <!-- Destination Card: London -->
+      <div class="col">
+          <div class="card h-100 shadow">
+              <img src="{{ url_for('static', filename='images/london.jpg') }}" class="card-img-top" alt="London">
+              <div class="card-body">
+                  <h5 class="card-title">London</h5>
+                  <p class="card-text">Discover the vibrant city of London, full of iconic landmarks and culture.</p>
+                  <a href="{{ url_for('destination_detail', city='london') }}" class="btn btn-primary">Learn More</a>
+              </div>
+          </div>
+      </div>
+
+      <!--Destination card: Cardiff-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/cardiff.jpg') }}" class="card-img-top" alt="Cardiff">
+            <div class="card-body">
+                <h5 class="card-title">Cardiff</h5>
+                <p class="card-text">See the beauty in Wales' capital, by the coast with its landmarks.</p>
+                <a href="{{ url_for('destination_detail', city='cardiff') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Manchester-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/manchester.jpg') }}" class="card-img-top" alt="Manchester">
+            <div class="card-body">
+                <h5 class="card-title">Manchester</h5>
+                <p class="card-text">Visit the vibrancy and variety, all in Manchester.</p>
+                <a href="{{ url_for('destination_detail', city='manchester') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Newcastle-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/newcastle.jpg') }}" class="card-img-top" alt="Newcastle">
+            <div class="card-body">
+                <h5 class="card-title">Newcastle</h5>
+                <p class="card-text">Explore the uniquity of one of England's most northern cities.</p>
+                <a href="{{ url_for('destination_detail', city='newcastle') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Glasgow-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/glasgow.jpg') }}" class="card-img-top" alt="Glasgow">
+            <div class="card-body">
+                <h5 class="card-title">Glasgow</h5>
+                <p class="card-text">Experience the noveau and prosperity, all in Glasgow.</p>
+                <a href="{{ url_for('destination_detail', city='glasgow') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Portsmouth-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/portsmouth.jpg') }}" class="card-img-top" alt="Portsmouth">
+            <div class="card-body">
+                <h5 class="card-title">Portsmouth</h5>
+                <p class="card-text">Explore the marine heritage of this Southern English city.</p>
+                <a href="{{ url_for('destination_detail', city='portsmouth') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Dundee-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/dundee.jpg') }}" class="card-img-top" alt="Dundee">
+            <div class="card-body">
+                <h5 class="card-title">Dundee</h5>
+                <p class="card-text">Visit this small, but situated, and marine-rich Scottish city.</p>
+                <a href="{{ url_for('destination_detail', city='dundee') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Southampton-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/southampton.jpg') }}" class="card-img-top" alt="Southampton">
+            <div class="card-body">
+                <h5 class="card-title">Southampton</h5>
+                <p class="card-text">See the spark in this marine-themed costal city.</p>
+                <a href="{{ url_for('destination_detail', city='southampton') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Birmingham-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/birmingham.jpg') }}" class="card-img-top" alt="Birmingham">
+            <div class="card-body">
+                <h5 class="card-title">Birmingham</h5>
+                <p class="card-text">Overlook the assumptions in this city, which itself has a lot variety.</p>
+                <a href="{{ url_for('destination_detail', city='birmingham') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+      <!--Destination card: Aberdeen-->
+      <div class="col">
+        <div class="card h-100 shadow">
+            <img src="{{ url_for('static', filename='images/aberdeen.jpg') }}" class="card-img-top" alt="Aberdeen">
+            <div class="card-body">
+                <h5 class="card-title">Aberdeen</h5>
+                <p class="card-text">Explore the unique within this industrial, costal, history rich highland city.</p>
+                <a href="{{ url_for('destination_detail', city='aberdeen') }}" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+      </div>
+
+  </div>
+
+</main>
+
+<footer class="bg-dark text-white text-center p-3 mt-5">
+    &copy; 2025 Horizon Travel. All rights reserved.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

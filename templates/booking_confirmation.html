@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation - Horizon Travel</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <style>
+        /* Background */
+        body {
+            background: url('{{ url_for("static", filename="images/plane.png") }}') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+
+        .nav-link:hover {
+            color: #007BFF !important;
+        }
+
+        /* Confirmation Container */
+        .confirmation-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 30px;
+            width: 95%;
+            max-width: 900px;
+            margin: 50px auto;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            flex: 1;
+        }
+
+        /* Receipt Section */
+        .receipt {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .receipt-header {
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .receipt-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .receipt-total {
+            border-top: 2px solid #f0f0f0;
+            padding-top: 15px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        /* Success message */
+        .success-message {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .success-message i {
+            color: #28a745;
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            width: 100%;
+            margin-top: auto;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: none;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .navbar, footer, .no-print {
+                display: none !important;
+            }
+            
+            .confirmation-container {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                padding: 15px;
+                box-shadow: none;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Horizon Travel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('airtravel') }}">Air Travel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('destinations') }}">Destinations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings') }}">Bookings</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('flightstatus') }}">Flight Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Confirmation Section -->
+    <div class="confirmation-container">
+        <!-- Success Message -->
+        <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <h2>Booking Confirmed!</h2>
+            <p class="mb-0">Thank you for booking with Horizon Travel.</p>
+            <p>A confirmation email has been sent to {{ booking.user.email }}</p>
+        </div>
+        
+        <!-- Booking Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Booking Reference: {{ booking.booking_reference }}</h5>
+                    <span class="badge bg-light text-dark">{{ booking.status }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Flight Details</h5>
+                        <p><strong>Flight Number:</strong> {{ flight.flight_number }}</p>
+                        <p><strong>From:</strong> {{ flight.dep_location }}</p>
+                        <p><strong>To:</strong> {{ flight.arr_location }}</p>
+                        <p><strong>Date:</strong> {{ flight.dep_time.strftime('%d %B %Y') }}</p>
+                        <p><strong>Departure Time:</strong> {{ flight.dep_time.strftime('%H:%M') }}</p>
+                        <p><strong>Arrival Time:</strong> {{ flight.arr_time.strftime('%H:%M') }}</p>
+                        <p><strong>Class:</strong> {{ flight.class_type }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Passenger Information</h5>
+                        <p><strong>Lead Passenger:</strong> {{ booking.user.first_name }} {{ booking.user.last_name }}</p>
+                        <p><strong>Email:</strong> {{ booking.user.email }}</p>
+                        <p><strong>Phone:</strong> {{ booking.user.tel_number }}</p>
+                        <p><strong>Number of Passengers:</strong> {{ booking.num_passengers }}</p>
+                        <p><strong>Booking Date:</strong> {{ booking.booking_date.strftime('%d %B %Y, %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Receipt -->
+        <div class="receipt" id="receipt">
+            <div class="receipt-header d-flex justify-content-between">
+                <div>
+                    <h4>Horizon Travel</h4>
+                    <p class="mb-0">Booking Receipt</p>
+                    <p class="mb-0">{{ booking.booking_date.strftime('%d %B %Y') }}</p>
+                </div>
+                <div>
+                    <h5>Receipt #{{ booking.booking_reference }}</h5>
+                </div>
+            </div>
+            
+            <div class="receipt-details">
+                <div class="receipt-detail">
+                    <span>Flight {{ flight.flight_number }} ({{ flight.class_type }})</span>
+                    <span>£{{ flight.price }}</span>
+                </div>
+                <div class="receipt-detail">
+                    <span>{{ flight.dep_location }} to {{ flight.arr_location }}</span>
+                    <span>{{ flight.dep_time.strftime('%d %b %Y') }}</span>
+                </div>
+                <div class="receipt-detail">
+                    <span>Passengers</span>
+                    <span>{{ booking.num_passengers }}</span>
+                </div>
+                {% if booking.num_passengers > 1 %}
+                <div class="receipt-detail">
+                    <span>Price per passenger</span>
+                    <span>£{{ flight.price }}</span>
+                </div>
+                {% endif %}
+                <div class="receipt-total">
+                    <span>Total Amount</span>
+                    <span>£{{ booking.total_price }}</span>
+                </div>
+                <div class="receipt-detail">
+                    <span>Payment Method</span>
+                    <span>Credit Card (**** {{ payment_info.last_four }})</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Price Details -->
+        <div class="booking-details">
+            <h3>Price Details</h3>
+            {% if payment_info.discount_percentage > 0 %}
+                <p><strong>Original Price:</strong> £{{ "%.2f"|format(payment_info.base_price) }}</p>
+                <p><strong>Discount:</strong> {{ payment_info.discount_percentage }}% (£{{ "%.2f"|format(payment_info.discount_amount) }})</p>
+                <p class="text-success"><strong>You saved:</strong> £{{ "%.2f"|format(payment_info.discount_amount) }}</p>
+                <p><strong>Final Price:</strong> £{{ "%.2f"|format(payment_info.final_price) }}</p>
+            {% else %}
+                <p><strong>Total Price:</strong> £{{ booking.total_price }}</p>
+                <p class="text-muted small">Book 45+ days in advance for discounts up to 25%</p>
+            {% endif %}
+        </div>
+
+        <!-- Additional Price Details Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Price Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Passengers:</strong> {{ booking.num_passengers }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        {% if payment_info.discount_percentage > 0 %}
+                            <p><strong>Original Price per Passenger:</strong> £{{ "%.2f"|format(payment_info.base_price / booking.num_passengers) }}</p>
+                            <p><strong>Discount:</strong> {{ payment_info.discount_percentage }}% off</p>
+                            <p><strong>Discounted Price per Passenger:</strong> £{{ "%.2f"|format(payment_info.final_price / booking.num_passengers) }}</p>
+                            <hr>
+                            <p><strong>Original Total:</strong> <s>£{{ "%.2f"|format(payment_info.base_price) }}</s></p>
+                            <p><strong>Discount Amount:</strong> -£{{ "%.2f"|format(payment_info.discount_amount) }}</p>
+                            <p class="text-success"><strong>Final Price Paid:</strong> £{{ "%.2f"|format(payment_info.final_price) }}</p>
+                            <div class="alert alert-success mt-2">
+                                <i class="fas fa-tag me-2"></i> You saved £{{ "%.2f"|format(payment_info.discount_amount) }} by booking in advance!
+                            </div>
+                        {% else %}
+                            <p><strong>Price per Passenger:</strong> £{{ "%.2f"|format(booking.total_price|float / booking.num_passengers) }}</p>
+                            <p><strong>Total Price Paid:</strong> £{{ booking.total_price }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between mt-4 no-print">
+            <button class="btn btn-secondary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i> Print Receipt
+            </button>
+            <div>
+                <a href="{{ url_for('bookings') }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-list-ul me-2"></i> View All Bookings
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i> Return to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Horizon Travel. All rights reserved.</p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

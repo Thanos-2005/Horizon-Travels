@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Customers - Horizon Travel Admin</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #343a40;
+            color: white;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: #007bff;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .table-responsive {
+            margin-top: 20px;
+        }
+        
+        .print-hide {
+            display: block;
+        }
+        
+        @media print {
+            .sidebar, .navbar, .report-actions, .print-hide {
+                display: none !important;
+            }
+            
+            .main-content {
+                padding: 0;
+                margin: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container-fluid {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .card {
+                border: none;
+            }
+            
+            .card-body {
+                padding: 0;
+            }
+            
+            canvas {
+                max-width: 100%;
+                height: auto !important;
+            }
+            
+            .watermark {
+                display: block;
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                opacity: 0.5;
+                font-size: 12px;
+                color: #999;
+            }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .customer-card {
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .customer-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .vip-customer {
+            border-left: 4px solid #198754;
+        }
+        
+        .regular-customer {
+            border-left: 4px solid #0d6efd;
+        }
+        
+        .customer-tier-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        
+        .customer-summary {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .customer-icon {
+            font-size: 32px;
+            margin-right: 20px;
+            color: #0d6efd;
+        }
+        
+        .watermark {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark print-hide">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Horizon Travel Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">View Site</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-shield"></i> {{ session.get('admin_username', 'Admin') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_dashboard', show_profile=1) }}">Admin Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">User Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse print-hide">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_flights') }}">
+                                <i class="fas fa-plane"></i> Flights
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_bookings') }}">
+                                <i class="fas fa-ticket-alt"></i> Bookings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_reports') }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom print-hide">
+                    <h1 class="h2"><i class="fas fa-user-tag text-primary me-2"></i>Top Customers</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0 report-actions">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printReport()">
+                                <i class="fas fa-print me-1"></i> Print
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="downloadPDF()">
+                                <i class="fas fa-file-pdf me-1"></i> Download PDF
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="downloadCSV()">
+                                <i class="fas fa-file-csv me-1"></i> Download CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Filtering Options -->
+                <div class="card mb-4 print-hide">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label for="timeFrame" class="form-label">Time Period:</label>
+                                <select id="timeFrame" class="form-select">
+                                    <option value="all" selected>All Time</option>
+                                    <option value="90days">Last 90 Days</option>
+                                    <option value="30days">Last 30 Days</option>
+                                    <option value="year">This Year</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="sortBy" class="form-label">Sort By:</label>
+                                <select id="sortBy" class="form-select">
+                                    <option value="revenue" selected>Revenue (High to Low)</option>
+                                    <option value="bookings">Bookings (High to Low)</option>
+                                    <option value="avg_booking">Average Booking Value (High to Low)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="customerCount" class="form-label">Show Top:</label>
+                                <select id="customerCount" class="form-select">
+                                    <option value="10">10 Customers</option>
+                                    <option value="25" selected>25 Customers</option>
+                                    <option value="50">50 Customers</option>
+                                    <option value="100">100 Customers</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary mt-3" id="applyFilters">Apply Filters</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div id="reportContent">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h2 class="mb-0">Top Customer Analysis</h2>
+                            <p class="text-muted mb-0">Generated on {{ datetime.now().strftime('%d %B %Y, %H:%M') }}</p>
+                        </div>
+                        <div class="card-body">
+                            <!-- Report Summary -->
+                            <div class="customer-summary">
+                                <div class="customer-icon">
+                                    <i class="fas fa-user-crown"></i>
+                                </div>
+                                <div>
+                                    <h4>Customer Value Analysis</h4>
+                                    <p class="mb-0">This report identifies your most valuable customers based on booking frequency and revenue generation.</p>
+                                </div>
+                            </div>
+
+                            <!-- Summary Statistics -->
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Total Customers</h5>
+                                            <p class="display-6">{{ customer_data|length }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">VIP Customers</h5>
+                                            <p class="display-6">{{ customer_data|selectattr('tier', 'equalto', 'VIP')|list|length }}</p>
+                                            <p class="mb-0">(Top 10%)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Total Revenue</h5>
+                                            <p class="display-6">£{{ customer_data|sum(attribute='total_spent')|round(2) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Avg. Customer Value</h5>
+                                            <p class="display-6">
+                                                {% set total_revenue = customer_data|sum(attribute='total_spent') %}
+                                                {% set avg_value = total_revenue / customer_data|length if customer_data|length > 0 else 0 %}
+                                                £{{ avg_value|round(2) }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts -->
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+
+                            <div class="chart-container">
+                                <canvas id="bookingsChart"></canvas>
+                            </div>
+
+                            <!-- Data Table -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered" id="customers-table">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Customer</th>
+                                            <th>Email</th>
+                                            <th>Date of Birth</th>
+                                            <th>Customer Since</th>
+                                            <th>Total Bookings</th>
+                                            <th>Total Revenue (£)</th>
+                                            <th>Avg. Booking Value (£)</th>
+                                            <th>Last Booking</th>
+                                            <th>Customer Tier</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for customer in customer_data %}
+                                            <tr class="customer-row">
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ customer.first_name }} {{ customer.last_name }}</td>
+                                                <td>{{ customer.email }}</td>
+                                                <td>{{ customer.date_of_birth.strftime('%d %b %Y') }}</td>
+                                                <td>{{ customer.customer_since.strftime('%d %b %Y') }}</td>
+                                                <td>{{ customer.bookings }}</td>
+                                                <td>{{ '£%.2f'|format(customer.total_spent) }}</td>
+                                                <td>{{ '£%.2f'|format(customer.avg_booking_value) }}</td>
+                                                <td>{{ customer.last_booking.strftime('%d %b %Y') }}</td>
+                                                <td>
+                                                    {% if customer.tier == 'VIP' %}
+                                                        <span class="badge bg-danger">{{ customer.tier }}</span>
+                                                    {% elif customer.tier == 'Premium' %}
+                                                        <span class="badge bg-success">{{ customer.tier }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ customer.tier }}</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Detailed Analysis Section -->
+                            <div class="mt-5">
+                                <h4>Customer Analysis Details</h4>
+                                
+                                <!-- Top 3 Most Valuable Customers -->
+                                <h5 class="mt-4">Most Valuable Customers</h5>
+                                <div class="row">
+                                    {% for customer in customer_data[:3] %}
+                                        <div class="col-md-4">
+                                            <div class="card customer-card vip-customer">
+                                                <div class="card-body">
+                                                    <span class="customer-tier-badge badge bg-danger">VIP</span>
+                                                    <h6 class="card-title">{{ customer.first_name }} {{ customer.last_name }}</h6>
+                                                    <p class="card-text">
+                                                        <i class="fas fa-pound-sign text-success me-1"></i> Total Spent: <strong>{{ '£%.2f'|format(customer.total_spent) }}</strong><br>
+                                                        <i class="fas fa-ticket-alt text-info me-1"></i> Bookings: <strong>{{ customer.bookings }}</strong><br>
+                                                        <i class="fas fa-calendar-alt text-primary me-1"></i> Customer Since: <strong>{{ customer.customer_since.strftime('%b %Y') }}</strong><br>
+                                                        <i class="fas fa-birthday-cake text-warning me-1"></i> Date of Birth: <strong>{{ customer.date_of_birth.strftime('%d %b %Y') }}</strong>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Key Insights -->
+                                <div class="card mt-4">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Key Customer Insights</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            {% set vip_customers = customer_data|selectattr('tier', 'equalto', 'VIP')|list %}
+                                            {% set vip_revenue = vip_customers|sum(attribute='total_spent') %}
+                                            {% set total_revenue = customer_data|sum(attribute='total_spent') %}
+                                            
+                                            <li>Top 10% of customers ({{ vip_customers|length }} VIP customers) generate 
+                                                <strong>{{ '%.1f'|format(vip_revenue/total_revenue*100 if total_revenue > 0 else 0) }}%</strong> 
+                                                of total revenue (£{{ '%.2f'|format(vip_revenue) }} of £{{ '%.2f'|format(total_revenue) }}).
+                                            </li>
+                                            
+                                            {% set top_customer = customer_data|first %}
+                                            <li>Your top customer <strong>{{ top_customer.first_name }} {{ top_customer.last_name }}</strong> has spent 
+                                                <strong>£{{ '%.2f'|format(top_customer.total_spent) }}</strong> across {{ top_customer.bookings }} bookings.
+                                            </li>
+                                            
+                                            {% set avg_booking_value = customer_data|sum(attribute='total_spent') / customer_data|sum(attribute='bookings') if customer_data|sum(attribute='bookings') > 0 else 0 %}
+                                            <li>Overall average booking value is <strong>£{{ '%.2f'|format(avg_booking_value) }}</strong>.</li>
+                                            
+                                            {% set repeat_customers = customer_data|selectattr('bookings', 'gt', 1)|list|length %}
+                                            {% set repeat_percentage = (repeat_customers / customer_data|length * 100) if customer_data|length > 0 else 0 %}
+                                            <li><strong>{{ '%.1f'|format(repeat_percentage) }}%</strong> of customers have made repeat bookings.</li>
+                                        </ul>
+                                        
+                                        <h6>Recommendations:</h6>
+                                        <ul>
+                                            <li>Focus retention strategies on the top 10-15% of your customer base.</li>
+                                            <li>Create a loyalty program to encourage more repeat bookings.</li>
+                                            <li>Consider personalized offers for customers who haven't booked in the past 3 months.</li>
+                                            <li>Target promotional campaigns toward increasing average booking value.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watermark for printed/PDF version -->
+                <div class="watermark">
+                    Generated by Horizon Travel Admin System | {{ datetime.now().strftime('%d %B %Y, %H:%M') }}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Convert customer_data to JavaScript array
+        const customers = {{ customer_data|tojson }};
+        
+        // Chart initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
+            
+            // Get top 10 customers by revenue for the chart
+            const topRevenueCustomers = [...customers]
+                .sort((a, b) => b.total_spent - a.total_spent)
+                .slice(0, 10);
+                
+            // Prepare data for revenue chart
+            const customerLabels = topRevenueCustomers.map(c => `${c.first_name} ${c.last_name}`);
+            const revenueData = topRevenueCustomers.map(c => c.total_spent);
+            
+            // Create revenue chart
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: customerLabels,
+                    datasets: [{
+                        label: 'Total Revenue (£)',
+                        data: revenueData,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Revenue (£)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Customers'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 10 Customers by Revenue',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Get top 10 customers by number of bookings
+            const topBookingCustomers = [...customers]
+                .sort((a, b) => b.bookings - a.bookings)
+                .slice(0, 10);
+                
+            // Prepare data for bookings chart
+            const bookingLabels = topBookingCustomers.map(c => `${c.first_name} ${c.last_name}`);
+            const bookingData = topBookingCustomers.map(c => c.bookings);
+            
+            // Create bookings chart
+            const bookingsChart = new Chart(bookingsCtx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: bookingLabels,
+                    datasets: [{
+                        label: 'Number of Bookings',
+                        data: bookingData,
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Bookings'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 10 Customers by Number of Bookings',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Setup filtering
+            const timeFrame = document.getElementById('timeFrame');
+            const sortBy = document.getElementById('sortBy');
+            const customerCount = document.getElementById('customerCount');
+            const applyFilters = document.getElementById('applyFilters');
+            
+            applyFilters.addEventListener('click', function() {
+                // This is a simplified implementation - in a real app, you'd likely
+                // make an AJAX call to fetch filtered data from the server
+                
+                // For this demo, we'll just sort the existing table rows
+                const table = document.getElementById('customers-table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                rows.sort((a, b) => {
+                    let valueA, valueB;
+                    
+                    switch(sortBy.value) {
+                        case 'revenue':
+                            valueA = parseFloat(a.cells[5].textContent.replace('£', '').trim());
+                            valueB = parseFloat(b.cells[5].textContent.replace('£', '').trim());
+                            break;
+                        case 'bookings':
+                            valueA = parseInt(a.cells[4].textContent);
+                            valueB = parseInt(b.cells[4].textContent);
+                            break;
+                        case 'avg_booking':
+                            valueA = parseFloat(a.cells[6].textContent.replace('£', '').trim());
+                            valueB = parseFloat(b.cells[6].textContent.replace('£', '').trim());
+                            break;
+                        default:
+                            valueA = 0;
+                            valueB = 0;
+                    }
+                    
+                    return valueB - valueA;  // Sort in descending order
+                });
+                
+                // Update the displayed rank
+                rows.forEach((row, index) => {
+                    row.cells[0].textContent = index + 1;
+                    tbody.appendChild(row);
+                });
+                
+                // Show only the requested number of rows
+                const count = parseInt(customerCount.value);
+                rows.forEach((row, index) => {
+                    row.style.display = index < count ? '' : 'none';
+                });
+            });
+        });
+        
+        // Print function
+        function printReport() {
+            window.print();
+        }
+        
+        // Download PDF function
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Top Customers Analysis', 149, 15, { align: 'center' });
+            
+            // Add generation timestamp
+            doc.setFontSize(10);
+            doc.text(`Generated on ${new Date().toLocaleString()}`, 149, 20, { align: 'center' });
+            
+            // Add summary statistics
+            doc.setFontSize(12);
+            doc.text('Customer Analysis Summary', 14, 30);
+            
+            const vipCount = customers.filter(c => c.tier === 'VIP').length;
+            const totalRevenue = customers.reduce((sum, c) => sum + c.total_spent, 0);
+            
+            doc.setFontSize(10);
+            doc.text(`Total Customers: ${customers.length}`, 14, 35);
+            doc.text(`VIP Customers: ${vipCount}`, 14, 40);
+            doc.text(`Total Revenue: £${totalRevenue.toFixed(2)}`, 14, 45);
+            
+            // Add table
+            const tableColumn = ["Rank", "Customer", "Email", "Total Bookings", "Total Revenue (£)", "Avg. Booking (£)", "Customer Tier"];
+            const tableRows = [];
+            
+            customers.forEach((customer, index) => {
+                const tableRow = [
+                    index + 1,
+                    `${customer.first_name} ${customer.last_name}`,
+                    customer.email,
+                    customer.bookings,
+                    `£${customer.total_spent.toFixed(2)}`,
+                    `£${customer.avg_booking_value.toFixed(2)}`,
+                    customer.tier
+                ];
+                tableRows.push(tableRow);
+            });
+            
+            // Add the table to the PDF
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 50,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [66, 139, 202] }
+            });
+            
+            // Add insights section
+            const topCustomer = customers[0];
+            
+            doc.text("Key Customer Insights:", 14, doc.lastAutoTable.finalY + 10);
+            doc.text(`- Top customer: ${topCustomer.first_name} ${topCustomer.last_name} (£${topCustomer.total_spent.toFixed(2)})`, 14, doc.lastAutoTable.finalY + 15);
+            doc.text(`- ${vipCount} VIP customers generate ${((customers.filter(c => c.tier === 'VIP').reduce((sum, c) => sum + c.total_spent, 0) / totalRevenue) * 100).toFixed(1)}% of total revenue`, 14, doc.lastAutoTable.finalY + 20);
+            
+            // Add footer
+            doc.setFontSize(8);
+            doc.text("Horizon Travel Admin System", 14, 200);
+            doc.text(new Date().toLocaleString(), 250, 200);
+            
+            // Save PDF
+            doc.save('top_customers_report.pdf');
+        }
+        
+        // Download CSV function
+        function downloadCSV() {
+            // Create CSV content
+            let csvContent = "Rank,Customer,Email,Customer Since,Total Bookings,Total Revenue,Avg. Booking Value,Last Booking,Customer Tier\n";
+            
+            customers.forEach((customer, index) => {
+                csvContent += `${index+1},"${customer.first_name} ${customer.last_name}",${customer.email},${customer.customer_since},${customer.bookings},${customer.total_spent.toFixed(2)},${customer.avg_booking_value.toFixed(2)},${customer.last_booking},${customer.tier}\n`;
+            });
+            
+            // Create download link
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "top_customers_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon Travel - Checkout</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <style>
+        /* Background */
+        body {
+            background: url('{{ url_for("static", filename="images/plane.png") }}') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+
+        .nav-link:hover {
+            color: #007BFF !important;
+        }
+
+        /* Checkout Container */
+        .checkout-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 30px;
+            width: 95%;
+            max-width: 1000px;
+            margin: 50px auto;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            flex: 1;
+        }
+
+        /* Flight Summary */
+        .flight-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* Payment Form */
+        .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .credit-card-box {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            background: white;
+            margin-bottom: 20px;
+        }
+
+        .credit-card-box .heading {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            width: 100%;
+            margin-top: auto;
+        }
+        
+        /* Card icon styles */
+        .card-icons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .card-icon {
+            width: 48px;
+            height: 30px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+        
+        .card-icon.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Horizon Travel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('airtravel') }}">Air Travel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('destinations') }}">Destinations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings') }}">Bookings</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('flightstatus') }}">Flight Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Checkout Section -->
+    <div class="checkout-container">
+        <h2 class="mb-4">Complete Your Booking</h2>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Flight Summary -->
+        <div class="flight-summary mb-4">
+            <h4>Flight Details</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Flight:</strong> #{{ flight.flight_number }} ({{ flight.class_type }})</p>
+                    <p><strong>From:</strong> {{ flight.dep_location }}</p>
+                    <p><strong>To:</strong> {{ flight.arr_location }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Date:</strong> {{ flight.dep_time.strftime('%d %B %Y') }}</p>
+                    <p><strong>Departure:</strong> {{ flight.dep_time.strftime('%H:%M') }}</p>
+                    <p><strong>Arrival:</strong> {{ flight.arr_time.strftime('%H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Passenger Information -->
+        <div class="passenger-info mb-4">
+            <h4>Passenger Information</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Passenger(s):</strong> {{ search.passengers }}</p>
+                    <p><strong>Lead Passenger:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                </div>
+                <div class="col-md-6">
+                    {% set days_in_advance = (flight.dep_time.date() - now.date()).days %}
+                    {% set discount = 0 %}
+                    {% if days_in_advance >= 80 and days_in_advance <= 90 %}
+                        {% set discount = 25 %}
+                    {% elif days_in_advance >= 60 and days_in_advance <= 79 %}
+                        {% set discount = 15 %}
+                    {% elif days_in_advance >= 45 and days_in_advance <= 59 %}
+                        {% set discount = 10 %}
+                    {% endif %}
+                    
+                    {% if discount > 0 %}
+                        {% set discount_amount = (total_price * discount / 100)|round(2) %}
+                        {% set final_price = total_price - discount_amount %}
+                        {% set price_per_passenger = flight.price|float %}
+                        {% set discounted_price_per_passenger = price_per_passenger - (price_per_passenger * discount / 100)|round(2) %}
+                        
+                        <p><strong>Original price per passenger:</strong> <s>£{{ flight.price }}</s></p>
+                        <p><strong>Discounted price per passenger:</strong> <span class="text-success">£{{ "%.2f"|format(discounted_price_per_passenger) }}</span></p>
+                        <p><strong>Original total price:</strong> <s>£{{ total_price }}</s></p>
+                        <p><strong>Discounted total price:</strong> <span class="text-success">£{{ "%.2f"|format(final_price) }}</span></p>
+                    {% else %}
+                        <p><strong>Price per passenger:</strong> £{{ flight.price }}</p>
+                        <p><strong>Total price:</strong> £{{ total_price }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Info -->
+        <div class="d-none">
+            <p>Current date: {{ now }}</p>
+            <p>Flight date: {{ flight.dep_time }}</p>
+            <p>Days in advance: {{ (flight.dep_time.date() - now.date()).days }}</p>
+        </div>
+
+        <!-- Price Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Price Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-6">Base Price:</div>
+                    <div class="col-md-6 text-end">£{{ flight.cost }} × {{ search.passengers }} passenger(s)</div>
+                </div>
+
+                {% set days_in_advance = (flight.dep_time.date() - now.date()).days %}
+                {% set discount = 0 %}
+                {% if days_in_advance >= 80 and days_in_advance <= 90 %}
+                    {% set discount = 25 %}
+                {% elif days_in_advance >= 60 and days_in_advance <= 79 %}
+                    {% set discount = 15 %}
+                {% elif days_in_advance >= 45 and days_in_advance <= 59 %}
+                    {% set discount = 10 %}
+                {% endif %}
+
+                {% if discount > 0 %}
+                    {% set discount_amount = (total_price * discount / 100)|round(2) %}
+                    {% set final_price = total_price - discount_amount %}
+                    <div class="row mb-2 text-success">
+                        <div class="col-md-6">Advance Booking Discount ({{ discount }}%):</div>
+                        <div class="col-md-6 text-end">-£{{ "%.2f"|format(discount_amount) }}</div>
+                    </div>
+                    <hr>
+                    <div class="row fw-bold">
+                        <div class="col-md-6">Total Price:</div>
+                        <div class="col-md-6 text-end">£{{ "%.2f"|format(final_price) }}</div>
+                    </div>
+                    <div class="alert alert-success mt-2">
+                        <i class="fas fa-tag me-2"></i> You're saving £{{ "%.2f"|format(discount_amount) }} by booking {{ days_in_advance }} days in advance!
+                    </div>
+                {% else %}
+                    <hr>
+                    <div class="row fw-bold">
+                        <div class="col-md-6">Total Price:</div>
+                        <div class="col-md-6 text-end">£{{ "%.2f"|format(total_price) }}</div>
+                    </div>
+                    {% if days_in_advance < 45 %}
+                        <div class="alert alert-info mt-2">
+                            <i class="fas fa-info-circle me-2"></i> Book 45-90 days in advance to receive discounts of 10-25% on your booking!
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payment Form -->
+        <form id="payment-form" method="post" action="{{ url_for('process_payment', flight_id=flight.journeyid) }}">
+            <h4>Payment Details</h4>
+            
+            <div class="credit-card-box">
+                <div class="card-icons">
+                    <div class="card-icon" style="background-image: url('https://cdn.pixabay.com/photo/2015/05/26/09/37/paypal-784404_960_720.png');" id="paypal"></div>
+                    <div class="card-icon" style="background-image: url('https://cdn.pixabay.com/photo/2015/05/26/09/37/visa-784437_960_720.png');" id="visa"></div>
+                    <div class="card-icon" style="background-image: url('https://cdn.pixabay.com/photo/2015/08/25/14/36/mastercard-907032_960_720.png');" id="mastercard"></div>
+                    <div class="card-icon" style="background-image: url('https://cdn.pixabay.com/photo/2015/05/26/09/37/amex-784410_960_720.png');" id="amex"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="card-name" class="form-label">Name on Card</label>
+                    <input type="text" class="form-control" id="card-name" name="card_name" required placeholder="John Smith">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="card-number" class="form-label">Card Number</label>
+                    <input type="text" class="form-control" id="card-number" name="card_number" required 
+                           placeholder="1234 5678 9012 3456" maxlength="19">
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="expiry-date" class="form-label">Expiry Date</label>
+                        <input type="text" class="form-control" id="expiry-date" name="expiry_date" 
+                               required placeholder="MM/YY" maxlength="5">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="cvv" class="form-label">CVV</label>
+                        <input type="text" class="form-control" id="cvv" name="cvv" 
+                               required placeholder="123" maxlength="4">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="billing-address" class="form-label">Billing Address</label>
+                <input type="text" class="form-control" id="billing-address" name="billing_address" 
+                       required value="{{ user.address_line_1 }}">
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="city" class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" name="city" 
+                           required value="{{ user.city }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="post-code" class="form-label">Post Code</label>
+                    <input type="text" class="form-control" id="post-code" name="post_code" 
+                           required value="{{ user.post_code }}">
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                    <label class="form-check-label" for="terms">
+                        I agree to the <a href="#">Terms and Conditions</a> and <a href="#">Privacy Policy</a>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-lock me-2"></i> Pay 
+                    {% if discount > 0 %}
+                        £{{ "%.2f"|format(final_price) }}
+                    {% else %}
+                        £{{ "%.2f"|format(total_price) }}
+                    {% endif %} 
+                    Securely
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Horizon Travel. All rights reserved.</p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Card Validation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Format card number with spaces
+            document.getElementById('card-number').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                let formattedValue = '';
+                for(let i = 0; i < value.length; i++) {
+                    if(i > 0 && i % 4 === 0) {
+                        formattedValue += ' ';
+                    }
+                    formattedValue += value[i];
+                }
+                e.target.value = formattedValue;
+                
+                // Highlight card type
+                const cardIcons = document.querySelectorAll('.card-icon');
+                cardIcons.forEach(icon => icon.classList.remove('active'));
+                
+                // Identify card type based on first digits
+                if (value.startsWith('4')) {
+                    document.getElementById('visa').classList.add('active');
+                } else if (value.startsWith('5')) {
+                    document.getElementById('mastercard').classList.add('active');
+                } else if (value.startsWith('3')) {
+                    document.getElementById('amex').classList.add('active');
+                } else if (value.startsWith('6')) {
+                    document.getElementById('paypal').classList.add('active');
+                }
+            });
+            
+            // Format expiry date
+            document.getElementById('expiry-date').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 0) {
+                    if (value.length <= 2) {
+                        e.target.value = value;
+                    } else {
+                        e.target.value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                    }
+                }
+            });
+            
+            // Limit CVV to 3-4 digits
+            document.getElementById('cvv').addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+            });
+        });
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

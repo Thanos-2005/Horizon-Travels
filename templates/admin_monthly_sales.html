@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Sales Report - Horizon Travel Admin</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #343a40;
+            color: white;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: #007bff;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .table-responsive {
+            margin-top: 20px;
+        }
+        
+        .print-hide {
+            display: block;
+        }
+        
+        @media print {
+            .sidebar, .navbar, .report-actions, .print-hide {
+                display: none !important;
+            }
+            
+            .main-content {
+                padding: 0;
+                margin: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container-fluid {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .card {
+                border: none;
+            }
+            
+            .card-body {
+                padding: 0;
+            }
+            
+            canvas {
+                max-width: 100%;
+                height: auto !important;
+            }
+            
+            .watermark {
+                display: block;
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                opacity: 0.5;
+                font-size: 12px;
+                color: #999;
+            }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .report-summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .stats-highlight {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        
+        .watermark {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark print-hide">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Horizon Travel Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">View Site</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-shield"></i> {{ session.get('admin_username', 'Admin') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_dashboard', show_profile=1) }}">Admin Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">User Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse print-hide">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_flights') }}">
+                                <i class="fas fa-plane"></i> Flights
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_bookings') }}">
+                                <i class="fas fa-ticket-alt"></i> Bookings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_reports') }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom print-hide">
+                    <h1 class="h2"><i class="fas fa-chart-line text-primary me-2"></i>Monthly Sales Report</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0 report-actions">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printReport()">
+                                <i class="fas fa-print me-1"></i> Print
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="downloadPDF()">
+                                <i class="fas fa-file-pdf me-1"></i> Download PDF
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="downloadCSV()">
+                                <i class="fas fa-file-csv me-1"></i> Download CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Year Selection -->
+                <div class="card mb-4 print-hide">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label for="yearSelect" class="form-label">Select Year:</label>
+                                <select id="yearSelect" class="form-select" onchange="window.location.href='?year=' + this.value">
+                                    {% for year in available_years %}
+                                        <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                                            {{ year }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="monthSelect" class="form-label">Select Month:</label>
+                                <select id="monthSelect" class="form-select">
+                                    <option value="all" selected>All Months</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary mt-3" id="updateReport" onclick="filterByMonth()">Update Report</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div id="reportContent">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h2 class="mb-0">Monthly Sales Report for {{ current_year }}</h2>
+                            <p class="text-muted mb-0">Generated on {{ datetime.now().strftime('%d %B %Y, %H:%M') }}</p>
+                        </div>
+                        <div class="card-body">
+                            <!-- Summary Statistics -->
+                            <div class="row mb-4 report-summary">
+                                <div class="col-md-3 text-center">
+                                    <div class="stats-highlight">{{ sales_data.booking_counts|sum }}</div>
+                                    <p>Total Bookings</p>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="stats-highlight">£{{ '%.2f'|format(sales_data.revenues|sum) }}</div>
+                                    <p>Total Revenue</p>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="stats-highlight">
+                                        {% set max_month_idx = sales_data.revenues.index(sales_data.revenues|max) %}
+                                        {{ sales_data.months[max_month_idx] }}
+                                    </div>
+                                    <p>Best Month</p>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="stats-highlight">{{ '%.2f'|format(sales_data.revenues|sum / 12) }}</div>
+                                    <p>Monthly Average</p>
+                                </div>
+                            </div>
+
+                            <!-- Charts -->
+                            <div class="chart-container">
+                                <canvas id="salesChart"></canvas>
+                            </div>
+
+                            <div class="chart-container">
+                                <canvas id="bookingsChart"></canvas>
+                            </div>
+
+                            <!-- Data Table -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered" id="sales-table">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Number of Bookings</th>
+                                            <th>Revenue (£)</th>
+                                            <th>Average Revenue per Booking (£)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for month in range(12) %}
+                                            <tr>
+                                                <td>{{ sales_data.months[month] }}</td>
+                                                <td>{{ sales_data.booking_counts[month] }}</td>
+                                                <td>{{ '%.2f'|format(sales_data.revenues[month]) }}</td>
+                                                <td>
+                                                    {% if sales_data.booking_counts[month] > 0 %}
+                                                        {{ '%.2f'|format(sales_data.revenues[month] / sales_data.booking_counts[month]) }}
+                                                    {% else %}
+                                                        0.00
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-dark">
+                                        <tr>
+                                            <th>Total</th>
+                                            <th>{{ sales_data.booking_counts|sum }}</th>
+                                            <th>{{ '%.2f'|format(sales_data.revenues|sum) }}</th>
+                                            <th>
+                                                {% if sales_data.booking_counts|sum > 0 %}
+                                                    {{ '%.2f'|format(sales_data.revenues|sum / sales_data.booking_counts|sum) }}
+                                                {% else %}
+                                                    0.00
+                                                {% endif %}
+                                            </th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Key Insights Section -->
+                            <div class="mt-4 mb-3">
+                                <h4>Key Insights</h4>
+                                <ul>
+                                    {% set total_bookings = sales_data.booking_counts|sum %}
+                                    {% set total_revenue = sales_data.revenues|sum %}
+                                    
+                                    {% set max_revenue_month_idx = sales_data.revenues.index(sales_data.revenues|max) %}
+                                    {% set max_revenue_month = sales_data.months[max_revenue_month_idx] %}
+                                    {% set max_revenue_value = sales_data.revenues[max_revenue_month_idx] %}
+                                    
+                                    {% set min_revenue_month_idx = sales_data.revenues.index(sales_data.revenues|min) %}
+                                    {% set min_revenue_month = sales_data.months[min_revenue_month_idx] %}
+                                    {% set min_revenue_value = sales_data.revenues[min_revenue_month_idx] %}
+                                    
+                                    <li>The highest earning month was <strong>{{ max_revenue_month }}</strong> with <strong>£{{ '%.2f'|format(max_revenue_value) }}</strong> in sales.</li>
+                                    <li>The lowest earning month was <strong>{{ min_revenue_month }}</strong> with <strong>£{{ '%.2f'|format(min_revenue_value) }}</strong> in sales.</li>
+                                    <li>Monthly average revenue: <strong>£{{ '%.2f'|format(total_revenue / 12) }}</strong></li>
+                                    <li>Monthly average bookings: <strong>{{ '%.1f'|format(total_bookings / 12) }}</strong></li>
+                                    <li>Revenue variance between best and worst month: <strong>£{{ '%.2f'|format(max_revenue_value - min_revenue_value) }}</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watermark for printed/PDF version -->
+                <div class="watermark">
+                    Generated by Horizon Travel Admin System | {{ datetime.now().strftime('%d %B %Y, %H:%M') }}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Data from backend
+        const months = {{ sales_data.months|tojson }};
+        const bookingCounts = {{ sales_data.booking_counts|tojson }};
+        const revenues = {{ sales_data.revenues|tojson }};
+        const currentYear = {{ current_year }};
+        
+        // Store chart references globally so the filter function can access them
+        let salesChart;
+        let bookingsChart;
+
+        // Chart initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
+            
+            // Revenue Chart
+            salesChart = new Chart(salesCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Monthly Revenue (£)',
+                        data: revenues,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Revenue (£)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Monthly Revenue for ${currentYear}`,
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Bookings Chart
+            bookingsChart = new Chart(bookingsCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Number of Bookings',
+                        data: bookingCounts,
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Bookings'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Monthly Booking Counts for ${currentYear}`,
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        });
+
+        // Filter by month function
+        function filterByMonth() {
+            const monthSelect = document.getElementById('monthSelect');
+            const selectedMonth = monthSelect.value;
+            
+            // If "All Months" is selected, show all data
+            if (selectedMonth === 'all') {
+                // Redraw charts with all data
+                salesChart.data.labels = months;
+                salesChart.data.datasets[0].data = revenues;
+                salesChart.update();
+                
+                bookingsChart.data.labels = months;
+                bookingsChart.data.datasets[0].data = bookingCounts;
+                bookingsChart.update();
+                
+                // Show all table rows
+                const tableRows = document.querySelectorAll('#sales-table tbody tr');
+                tableRows.forEach(row => {
+                    row.style.display = '';
+                });
+                
+                return;
+            }
+            
+            // Convert to 0-indexed month
+            const monthIndex = parseInt(selectedMonth) - 1;
+            
+            // Filter data to show only the selected month
+            const filteredLabels = [months[monthIndex]];
+            const filteredRevenues = [revenues[monthIndex]];
+            const filteredBookings = [bookingCounts[monthIndex]];
+            
+            // Update the charts with filtered data
+            salesChart.data.labels = filteredLabels;
+            salesChart.data.datasets[0].data = filteredRevenues;
+            salesChart.update();
+            
+            bookingsChart.data.labels = filteredLabels;
+            bookingsChart.data.datasets[0].data = filteredBookings;
+            bookingsChart.update();
+            
+            // Hide/show table rows based on selected month
+            const tableRows = document.querySelectorAll('#sales-table tbody tr');
+            tableRows.forEach((row, index) => {
+                if (index === monthIndex) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Print function
+        function printReport() {
+            window.print();
+        }
+        
+        // Download PDF function
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text(`Monthly Sales Report - ${currentYear}`, 105, 15, { align: 'center' });
+            
+            // Add generation timestamp
+            doc.setFontSize(10);
+            doc.text(`Generated on ${new Date().toLocaleString()}`, 105, 20, { align: 'center' });
+            
+            // Add table
+            const tableColumn = ["Month", "Bookings", "Revenue (£)", "Avg. Revenue (£)"];
+            const tableRows = [];
+            
+            for (let i = 0; i < months.length; i++) {
+                const avgRevenue = bookingCounts[i] > 0 ? (revenues[i] / bookingCounts[i]).toFixed(2) : '0.00';
+                const tableRow = [
+                    months[i], 
+                    bookingCounts[i], 
+                    revenues[i].toFixed(2), 
+                    avgRevenue
+                ];
+                tableRows.push(tableRow);
+            }
+            
+            // Add total row
+            const totalBookings = bookingCounts.reduce((a, b) => a + b, 0);
+            const totalRevenue = revenues.reduce((a, b) => a + b, 0);
+            const totalAvgRevenue = totalBookings > 0 ? (totalRevenue / totalBookings).toFixed(2) : '0.00';
+            
+            tableRows.push(['TOTAL', totalBookings, totalRevenue.toFixed(2), totalAvgRevenue]);
+            
+            // Add the table to the PDF
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 25,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [66, 139, 202] }
+            });
+            
+            // Add key insights
+            const maxRevenueMonth = months[revenues.indexOf(Math.max(...revenues))];
+            const maxRevenueValue = Math.max(...revenues).toFixed(2);
+            const minRevenueMonth = months[revenues.indexOf(Math.min(...revenues))];
+            const minRevenueValue = Math.min(...revenues).toFixed(2);
+            
+            doc.text("Key Insights:", 14, doc.lastAutoTable.finalY + 10);
+            doc.text(`- Highest revenue in ${maxRevenueMonth}: £${maxRevenueValue}`, 14, doc.lastAutoTable.finalY + 15);
+            doc.text(`- Lowest revenue in ${minRevenueMonth}: £${minRevenueValue}`, 14, doc.lastAutoTable.finalY + 20);
+            doc.text(`- Monthly average revenue: £${(totalRevenue / 12).toFixed(2)}`, 14, doc.lastAutoTable.finalY + 25);
+            doc.text(`- Monthly average bookings: ${(totalBookings / 12).toFixed(1)}`, 14, doc.lastAutoTable.finalY + 30);
+            
+            // Add footer
+            doc.setFontSize(8);
+            doc.text("Horizon Travel Admin System", 14, 290);
+            doc.text(new Date().toLocaleString(), 170, 290);
+            
+            // Save PDF
+            doc.save(`monthly_sales_report_${currentYear}.pdf`);
+        }
+        
+        // Download CSV function
+        function downloadCSV() {
+            // Create CSV content
+            let csvContent = "Month,Number of Bookings,Revenue (£),Average Revenue per Booking (£)\n";
+            
+            for (let i = 0; i < months.length; i++) {
+                const avgRevenue = bookingCounts[i] > 0 ? (revenues[i] / bookingCounts[i]).toFixed(2) : '0.00';
+                csvContent += `${months[i]},${bookingCounts[i]},${revenues[i].toFixed(2)},${avgRevenue}\n`;
+            }
+            
+            // Add total row
+            const totalBookings = bookingCounts.reduce((a, b) => a + b, 0);
+            const totalRevenue = revenues.reduce((a, b) => a + b, 0);
+            const totalAvgRevenue = totalBookings > 0 ? (totalRevenue / totalBookings).toFixed(2) : '0.00';
+            
+            csvContent += `TOTAL,${totalBookings},${totalRevenue.toFixed(2)},${totalAvgRevenue}\n`;
+            
+            // Create download link
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `monthly_sales_report_${currentYear}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->

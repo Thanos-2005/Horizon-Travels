@@ -1,0 +1,202 @@
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Headings */
+h1 {
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+/* Main Container */
+.container {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* Buttons */
+.button-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.button {
+  background-color: #0098d498;
+  border: 2px solid rgba(0, 255, 247, 0.463);
+  color: white;
+  padding: 15px 30px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  transition: all 0.4s ease-in-out;
+  min-width: 120px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background-color: rgba(0, 255, 247, 0.7);
+}
+
+/* Form Container */
+.form-container {
+  width: 100%;
+  max-width: 900px;
+  padding: 40px;
+  margin: 20px auto;
+  border: 2px solid #00ffea8f;
+  border-radius: 8px;
+  background-color: #00fff791;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+label {
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="email"] {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+input[type="submit"] {
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+input[type="submit"]:hover {
+  background-color: #00ff62;
+}
+
+/* Image Styling */
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Text Overlay */
+.text-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgb(157, 157, 157);
+  font-size: 24px;
+  text-align: center;
+}
+
+/* Text Boxes */
+.text-box {
+  width: 100%;
+  max-width: 350px;
+  height: 350px;
+  padding: 20px;
+  border-radius: 25px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  margin: 20px;
+  text-align: center;
+  color: #333;
+}
+
+.text-box1 {
+  background-color: rgba(255, 22, 239, 0.441);
+  border: 2px solid rgb(255, 158, 245);
+}
+
+.text-box2 {
+  background-color: rgba(116, 211, 205, 0.441);
+  border: 2px solid rgb(158, 203, 255);
+}
+
+.text-box3 {
+  background-color: rgba(195, 255, 0, 0.441);
+  border: 2px solid rgb(205, 255, 158);
+}
+
+.text-box4 {
+  background-color: #00ff3370;
+  border: 2px solid rgb(181, 255, 191);
+}
+
+.text-box5 {
+  background-color: #ff4b7570;
+  border: 2px solid rgb(255, 181, 214);
+}
+
+/* Cards */
+.card {
+  transition: all 0.3s;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
+
+/* Layout and Footer */
+main {
+  min-height: 80vh;
+}
+
+footer {
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-top: 1px solid #ddd;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+      flex-direction: column;
+      align-items: center;
+  }
+
+  .text-box {
+      max-width: 100%;
+  }
+
+  .button-container {
+      position: static;
+      flex-direction: column;
+  }
+}

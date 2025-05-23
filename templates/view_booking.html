@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Details | Horizon Travel</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Background */
+        body {
+            background: url('{{ url_for("static", filename="images/plane.png") }}') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navigation */
+        .navbar {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+
+        .nav-link:hover {
+            color: #007BFF !important;
+        }
+
+        /* Main Content */
+        .content-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 30px;
+            width: 95%;
+            max-width: 1200px;
+            margin: 50px auto;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            flex-grow: 1;
+        }
+        
+        /* Flight path visualization */
+        .flight-path-line {
+            position: relative;
+            width: 60px;
+        }
+        
+        .flight-line {
+            height: 2px;
+            background-color: #ccc;
+            width: 100%;
+            position: relative;
+        }
+        
+        .flight-icon {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #007BFF;
+        }
+
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Horizon Travel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('airtravel') }}">Air Travel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('destinations') }}">Destinations</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('bookings') }}">Bookings</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('flightstatus') }}">Flight Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="content-container">
+        <!-- Booking Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">
+                <i class="fas fa-ticket-alt me-2 text-primary"></i>Booking Details
+            </h1>
+            <a href="{{ url_for('bookings') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to All Bookings
+            </a>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Status Alert -->
+        {% if booking.status == 'Confirmed' %}
+            <div class="alert alert-success d-flex align-items-center mb-4">
+                <i class="fas fa-check-circle me-3 fs-4"></i>
+                <div>
+                    <strong>Confirmed Booking</strong>
+                    <p class="mb-0">Your booking is confirmed and ready for travel.</p>
+                </div>
+            </div>
+        {% elif booking.status == 'Cancelled' %}
+            <div class="alert alert-danger d-flex align-items-center mb-4">
+                <i class="fas fa-times-circle me-3 fs-4"></i>
+                <div>
+                    <strong>Cancelled Booking</strong>
+                    <p class="mb-0">This booking has been cancelled.</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning d-flex align-items-center mb-4">
+                <i class="fas fa-exclamation-circle me-3 fs-4"></i>
+                <div>
+                    <strong>{{ booking.status }}</strong>
+                    <p class="mb-0">Your booking is being processed.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="row">
+            <!-- Flight Details -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center">
+                        <i class="fas fa-plane text-primary me-2"></i>
+                        <h5 class="mb-0 fw-bold">Flight Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <h5 class="fw-bold mb-3">{{ flight.flight_number }} {{ flight.class_type }}</h5>
+                                <div class="d-flex mb-3">
+                                    <div class="me-4">
+                                        <div class="h5 mb-0">{{ flight.dep_time.strftime('%H:%M') }}</div>
+                                        <div class="text-muted small">{{ flight.dep_time.strftime('%d %b %Y') }}</div>
+                                        <div class="fw-bold">{{ flight.dep_location }}</div>
+                                    </div>
+                                    <div class="flight-path-line mx-3 d-flex flex-column align-items-center justify-content-center">
+                                        <div class="flight-line"></div>
+                                        <div class="flight-icon">
+                                            <i class="fas fa-plane"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="h5 mb-0">{{ flight.arr_time.strftime('%H:%M') }}</div>
+                                        <div class="text-muted small">{{ flight.arr_time.strftime('%d %b %Y') }}</div>
+                                        <div class="fw-bold">{{ flight.arr_location }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <p class="mb-1"><strong>Booking Reference:</strong></p>
+                                <span class="badge bg-dark fs-5 mb-3">{{ booking.booking_reference }}</span>
+                                <p class="mb-1"><strong>Passengers:</strong></p>
+                                <p>{{ booking.num_passengers }} passenger(s)</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Booking Date:</strong> {{ booking.booking_date.strftime('%d %B %Y') }}</p>
+                                <p><strong>Status:</strong> <span class="badge {% if booking.status == 'Confirmed' %}bg-success{% elif booking.status == 'Cancelled' %}bg-danger{% else %}bg-warning{% endif %}">{{ booking.status }}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Total Paid:</strong> <span class="fs-5 fw-bold text-primary">£{{ booking.total_price }}</span></p>
+                                <p><strong>Payment Method:</strong> Card ending in {{ payment_info.last_four }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <!-- Lead Passenger Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center">
+                        <i class="fas fa-user text-primary me-2"></i>
+                        <h5 class="mb-0 fw-bold">Lead Passenger</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        {% if user.tel_number %}
+                            <p><strong>Phone:</strong> {{ user.tel_number }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Booking Actions -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center">
+                        <i class="fas fa-tasks text-primary me-2"></i>
+                        <h5 class="mb-0 fw-bold">Booking Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {% if booking.status == 'Confirmed' %}
+                                <a href="{{ url_for('download_boarding_pass', booking_id=booking.booking_id) }}" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i>Download Boarding Pass
+                                </a>
+                                <a href="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" class="btn btn-outline-danger" 
+                                   onclick="return confirm('Are you sure you want to cancel this booking? Cancellation fees may apply.')">
+                                    <i class="fas fa-ban me-2"></i>Cancel Booking
+                                </a>
+                            {% elif booking.status == 'Cancelled' %}
+                                <p class="text-center text-muted mb-0">This booking has been cancelled.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Management Section -->
+        <div class="card booking-card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-cogs me-2"></i>Booking Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="mb-4">
+                            <h6 class="text-primary fw-bold mb-3">Change Options</h6>
+                            <div class="d-grid gap-3">
+                                <!-- Edit Passenger Details Button -->
+                                <button class="btn btn-outline-primary text-start" data-bs-toggle="modal" data-bs-target="#passengerModal">
+                                    <i class="fas fa-user-edit me-2"></i> Edit Passenger Details
+                                    <small class="d-block text-muted mt-1">Update traveler information or add special requests</small>
+                                </button>
+                                
+                                <!-- Only show flight change option if booking is not cancelled -->
+                                {% if booking.status != 'Cancelled' %}
+                                    <button class="btn btn-outline-primary text-start" data-bs-toggle="modal" data-bs-target="#flightChangeModal">
+                                        <i class="fas fa-exchange-alt me-2"></i> Change Flight Date
+                                        <small class="d-block text-muted mt-1">Select a different travel date for your journey</small>
+                                    </button>
+                                    
+                                    <!-- Only show class upgrade if current class is Economy -->
+                                    {% if flight.class_type == 'Economy' %}
+                                        <button class="btn btn-outline-primary text-start" data-bs-toggle="modal" data-bs-target="#upgradeModal">
+                                            <i class="fas fa-arrow-circle-up me-2"></i> Upgrade to Business Class
+                                            <small class="d-block text-muted mt-1">Enjoy premium benefits for an additional fee</small>
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-5">
+                        <div class="card bg-light h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-secondary fw-bold mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Important Information
+                                </h6>
+                                <ul class="small mb-0 ps-3">
+                                    <li class="mb-2">Changes may incur additional fees</li>
+                                    <li class="mb-2">Flight date changes are subject to availability</li>
+                                    <li class="mb-2">Passenger name changes must match travel ID</li>
+                                    <li class="mb-2">Contact customer service for special assistance</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Passenger Details Modal -->
+    <div class="modal fade" id="passengerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-edit me-2 text-primary"></i>Edit Passenger Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('update_passenger_details', booking_id=booking.booking_id) }}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Passenger Name</label>
+                            <input type="text" class="form-control" name="passenger_name" value="{{ user.first_name }} {{ user.last_name }}" required>
+                            <div class="form-text">Name must match your travel identification document</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Special Requests</label>
+                            <select class="form-select" name="special_requests">
+                                <option value="">None</option>
+                                <option value="wheelchair">Wheelchair Assistance</option>
+                                <option value="meal">Special Meal Request</option>
+                                <option value="infant">Traveling with Infant</option>
+                                <option value="extra_legroom">Extra Legroom Seat</option>
+                                <option value="assistance">Airport Assistance</option>
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-info d-flex">
+                            <i class="fas fa-info-circle me-2 align-self-center"></i>
+                            <small>Passenger detail changes are free of charge but must be completed at least 48 hours before departure.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flight Change Modal -->
+    <div class="modal fade" id="flightChangeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-alt me-2 text-primary"></i>Change Flight Date
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('change_flight_date', booking_id=booking.booking_id) }}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Current Flight Date</label>
+                            <input type="text" class="form-control bg-light" value="{{ flight.dep_time.strftime('%d %B %Y') }}" disabled>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">New Flight Date</label>
+                            <input type="date" class="form-control" name="new_date" required 
+                                min="{{ flight.dep_time.strftime('%Y-%m-%d') }}">
+                        </div>
+                        
+                        <div class="alert alert-warning d-flex">
+                            <i class="fas fa-exclamation-triangle me-2 align-self-start mt-1"></i>
+                            <div>
+                                <p class="fw-bold mb-2">Important:</p>
+                                <ul class="mb-1 ps-3">
+                                    <li>Availability on new date is required</li>
+                                    <li>Fare differences may apply</li>
+                                    <li>£25 change fee may be charged</li>
+                                </ul>
+                                <small>Exact fare difference will be calculated after submission.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i> Check Availability
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Upgrade Modal -->
+    <div class="modal fade" id="upgradeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="fas fa-arrow-circle-up me-2 text-primary"></i>Upgrade to Business Class
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('upgrade_booking_class', booking_id=booking.booking_id) }}" method="post">
+                    <div class="modal-body">
+                        <div class="card mb-4 border-primary">
+                            <div class="card-header bg-primary bg-opacity-10">
+                                <h6 class="mb-0 fw-bold">Business Class Benefits</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="mb-0 ps-3">
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Priority boarding</li>
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Extra legroom</li>
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Premium meal service</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="mb-0 ps-3">
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Dedicated check-in</li>
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Extra baggage allowance</li>
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Priority baggage handling</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Current Class:</span>
+                                <span class="badge bg-secondary">{{ flight.class_type }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Upgrade Cost:</span>
+                                <span class="badge bg-primary fs-6">£{{ '%.2f'|format(business_upgrade_fee) }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info d-flex">
+                            <i class="fas fa-info-circle me-2 align-self-center"></i>
+                            <small>Upgrade is subject to Business Class availability on your flight.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-arrow-circle-up me-1"></i> Proceed with Upgrade
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Horizon Travel. All rights reserved.</p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<!——Name: Ethan Williams
+	Student Number: 24026055—->
